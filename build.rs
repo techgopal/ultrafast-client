@@ -17,7 +17,9 @@ fn main() {
 
     // Additional configuration for extension modules
     if config.version >= (PythonVersion { major: 3, minor: 8 }) {
-        // Set proper linking flags for Python extension modules
-        println!("cargo:rustc-cdylib-link-arg=-Wl,-install_name,@rpath/ultrafast_client.so");
+        // Set proper linking flags for Python extension modules (macOS only)
+        if cfg!(target_os = "macos") {
+            println!("cargo:rustc-cdylib-link-arg=-Wl,-install_name,@rpath/ultrafast_client.so");
+        }
     }
 }
