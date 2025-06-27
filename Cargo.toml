@@ -1,0 +1,161 @@
+[package]
+name = "ultrafast-client"
+version = "0.1.0"
+authors = ["UltraFast Team <team@ultrafast-client.dev>"]
+edition = "2021"
+description = "A blazingly fast HTTP client for Python, built with Rust and Tokio"
+license = "Apache-2.0"
+homepage = "https://github.com/your-org/ultrafast-client"
+repository = "https://github.com/your-org/ultrafast-client"
+readme = "README.md"
+keywords = ["http", "client", "async", "tokio", "python"]
+categories = ["network-programming", "web-programming::http-client", "api-bindings"]
+
+[lib]
+name = "ultrafast_client"
+crate-type = ["cdylib"]
+
+[dependencies]
+# PyO3 for Python bindings - Stable versions
+pyo3 = { version = "0.20", features = ["extension-module", "abi3-py39"] }
+pyo3-asyncio = { version = "0.20", features = ["tokio-runtime"] }
+
+# Async runtime and HTTP client (optimized features)
+tokio = { version = "1.37", features = ["rt-multi-thread", "net", "time", "sync", "macros"] }
+reqwest = { version = "0.12", features = [
+    "json",
+    "stream",
+    "multipart", 
+    "cookies",
+    "gzip",
+    "brotli",
+    "deflate",
+    "blocking",
+    "http2",
+] }
+
+# Production-ready HTTP/3 via Cloudflare Quiche - Stable
+quiche = "0.20"
+
+# Required for HTTP/3 integration
+tokio-util = { version = "0.7", features = ["codec"] }
+ring = "0.17"  # Cryptographic primitives for QUIC
+
+# WebSocket support - Updated for security
+tokio-tungstenite = "0.23"
+tungstenite = "0.23"
+
+# Serialization - Updated to latest
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_urlencoded = "0.7"
+
+# Error handling
+thiserror = "1.0"
+
+# Async utilities (consolidated)
+futures-util = "0.3"
+tokio-stream = "0.1"
+
+# URL handling
+url = "2.5"
+
+# HTTP types
+http = "1.1"  # Updated to latest
+
+# Random number generation for jitter
+rand = "0.8"
+
+# Base64 encoding - Updated
+base64 = "0.22"
+
+# Bytes handling
+bytes = "1.6"
+
+# Regular expressions - Only used if actually needed
+regex = { version = "1.10", optional = true }
+
+# Python integration
+pythonize = "0.20"
+
+# TLS support (moved up as it's shared) - Updated
+rustls = { version = "0.23", optional = true }
+rustls-pemfile = { version = "2.1", optional = true }
+
+# Compression support - Updated
+flate2 = "1.0"
+brotli = "6.0"  # Updated for better performance
+
+# Performance optimizations - Updated versions
+smallvec = "1.13"  # Stack-allocated vectors for small collections
+ahash = "0.8"      # Faster hash algorithm
+parking_lot = "0.12"  # Faster mutexes and locks
+once_cell = "1.19" # Thread-safe lazy statics
+crossbeam = "0.8"  # Lock-free data structures
+
+[dev-dependencies]
+# Testing (optimized) - Updated
+tokio-test = "0.4"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+# Python testing integration - Stable
+pyo3-build-config = "0.20"
+
+[features]
+default = ["native-tls", "http2-enhanced", "http3-quiche"]
+native-tls = ["reqwest/native-tls", "tokio-tungstenite/native-tls"]
+rustls-tls = ["reqwest/rustls-tls", "tokio-tungstenite/rustls-tls-webpki-roots", "rustls", "rustls-pemfile"]
+
+# HTTP Protocol Support (Stable)
+http2-enhanced = []                                          # Stable HTTP/2 optimizations (always available)
+http3-quiche = []                                            # Production-ready HTTP/3 via Quiche (always available)
+
+# Protocol combinations (kept for backwards compatibility)
+all-stable = []                                              # HTTP/1.1 + HTTP/2 (stable)
+all-protocols = []                                           # Complete protocol support (recommended)
+
+# Optional features for reducing binary size
+regex-support = ["regex"]
+
+# Performance optimization profiles
+[profile.release]
+opt-level = 3          # Maximum optimization
+lto = "fat"           # Link Time Optimization
+codegen-units = 1     # Single codegen unit for better optimization
+panic = "abort"       # Smaller binary size
+overflow-checks = false # Disable integer overflow checks in release
+debug = false         # No debug info in release
+strip = true          # Strip symbols
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true
+strip = false
+
+# Custom profile for benchmarking
+[profile.bench]
+inherits = "release"
+debug = true
+overflow-checks = false
+
+[profile.dev]
+opt-level = 0
+debug = true
+overflow-checks = true  # Enable in debug mode for safety
+
+[build-dependencies]
+pyo3-build-config = "0.20"
+
+[package.metadata.maturin]
+python-source = "python"
+module-name = "ultrafast_client._ultrafast_client"
+
+# Security audit configuration
+[package.metadata.audit]
+yanked = "deny"
+ignore-dev-dependencies = true
+
+# Ensure we're using secure versions
+[[package.metadata.audit.advisories]]
+vulnerability = "RUSTSEC-*"
+severity = "medium"

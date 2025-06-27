@@ -1,0 +1,218 @@
+# UltraFast HTTP Client - Git Ignore File
+# =====================================
+
+# Rust artifacts
+/target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Maturin/PyO3 build artifacts
+*.whl
+.maturin-cache/
+wheelhouse/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Testing and coverage
+.coverage
+.pytest_cache/
+.tox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.coverage.*
+
+# Documentation
+docs/_build/
+site/
+.mkdocs.yml.tmp
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Performance and profiling
+*.prof
+perf.data*
+flamegraph.svg
+
+# Benchmark results
+criterion/
+benchmarks/results/
+*.bench
+
+# Test artifacts
+test-results/
+test-output/
+*.test
+
+# Development and debug files
+debug/
+dump.rdb
+core.*
+
+# Platform-specific
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Project-specific ignores
+# Performance test results
+performance_results/
+benchmark_output/
+
+# Demo artifacts
+demo_output/
+examples/output/
+
+# Development scripts
+dev-scripts/
+local-test-*
+
+# SSL certificates (if any)
+*.pem
+*.key
+*.crt
+*.p12
+
+# Database files (if any)
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Node.js (if using for tooling)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Lock files for dependencies (keep Cargo.lock for applications)
+# Cargo.lock - commented out as it's useful for applications
+poetry.lock
+yarn.lock
+
+# Custom development files
+TODO.md.local
+NOTES.md.local
+scratch.*
+playground.*
+
+# CI/CD artifacts
+.github/workflows/*.log
+.gitlab-ci.yml.backup
+
+# Rust-analyzer
+rust-project.json
+
+# RLS
+**/*.rs.bk
+rls*.log
+
+# CLion
+cmake-build-*/
+
+# Local configuration
+local.toml
+config.local.*
+
+# Flamegraph output
+flamegraph.svg
+perf.data
+perf.data.old
+
+# Valgrind output
+vgcore.*
+callgrind.out.*
+massif.out.*
