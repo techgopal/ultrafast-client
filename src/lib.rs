@@ -1,3 +1,25 @@
+//! UltraFast HTTP Client
+//!
+//! A high-performance HTTP client library for Python, built with Rust and PyO3.
+//! Provides both synchronous and asynchronous interfaces with comprehensive features.
+
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::enum_variant_names)]
+#![allow(clippy::type_complexity)]
+#![allow(clippy::derivable_impls)]
+#![allow(clippy::field_reassign_with_default)]
+#![allow(clippy::declare_interior_mutable_const)]
+#![allow(clippy::needless_lifetimes)]
+#![allow(clippy::redundant_closure)]
+#![allow(clippy::unwrap_or_default)]
+#![allow(clippy::assign_op_pattern)]
+#![allow(clippy::iter_next_slice)]
+#![allow(clippy::while_let_loop)]
+#![allow(clippy::implicit_saturating_add)]
+#![allow(clippy::manual_range_contains)]
+#![allow(clippy::unnecessary_map_or)]
+#![allow(non_local_definitions)]
+
 use pyo3::prelude::*;
 
 mod async_client;
