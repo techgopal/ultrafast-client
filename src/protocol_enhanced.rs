@@ -322,7 +322,9 @@ impl EnhancedProtocolNegotiator {
         response_time: Duration,
     ) {
         if let Ok(mut weights) = self.weights.write() {
-            let host_weights = weights.entry(host.to_string()).or_insert_with(ProtocolWeights::default);
+            let host_weights = weights
+                .entry(host.to_string())
+                .or_insert_with(ProtocolWeights::default);
 
             // Learning rate for weight adjustment
             let learning_rate = 0.1;
@@ -336,16 +338,16 @@ impl EnhancedProtocolNegotiator {
 
             match protocol {
                 HttpVersion::Http1 => {
-                    host_weights.http1_weight = (host_weights.http1_weight 
-                        + learning_rate * performance_score).max(0.1);
+                    host_weights.http1_weight =
+                        (host_weights.http1_weight + learning_rate * performance_score).max(0.1);
                 }
                 HttpVersion::Http2 => {
-                    host_weights.http2_weight = (host_weights.http2_weight 
-                        + learning_rate * performance_score).max(0.1);
+                    host_weights.http2_weight =
+                        (host_weights.http2_weight + learning_rate * performance_score).max(0.1);
                 }
                 HttpVersion::Http3 => {
-                    host_weights.http3_weight = (host_weights.http3_weight 
-                        + learning_rate * performance_score).max(0.1);
+                    host_weights.http3_weight =
+                        (host_weights.http3_weight + learning_rate * performance_score).max(0.1);
                 }
                 HttpVersion::Auto => {} // No-op
             }
@@ -392,9 +394,8 @@ impl EnhancedProtocolNegotiator {
 
         // Clean up DNS cache
         if let Ok(mut dns_cache) = self.dns_cache.write() {
-            dns_cache.retain(|_, (_, timestamp)| {
-                now.duration_since(*timestamp) < self.dns_cache_ttl
-            });
+            dns_cache
+                .retain(|_, (_, timestamp)| now.duration_since(*timestamp) < self.dns_cache_ttl);
         }
 
         // Clean up preference weights (keep longer)

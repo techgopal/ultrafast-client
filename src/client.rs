@@ -692,11 +692,23 @@ impl HttpClient {
                     stats_map.insert("protocol".to_string(), "HTTP/3".to_string());
                     stats_map.insert("connection_established".to_string(), "true".to_string());
                     stats_map.insert("bytes_sent".to_string(), stats.bytes_sent.to_string());
-                    stats_map.insert("bytes_received".to_string(), stats.bytes_received.to_string());
+                    stats_map.insert(
+                        "bytes_received".to_string(),
+                        stats.bytes_received.to_string(),
+                    );
                     stats_map.insert("packets_sent".to_string(), stats.packets_sent.to_string());
-                    stats_map.insert("packets_received".to_string(), stats.packets_received.to_string());
-                    stats_map.insert("connection_time".to_string(), stats.connection_time.to_string());
-                    stats_map.insert("round_trip_time".to_string(), stats.round_trip_time.to_string());
+                    stats_map.insert(
+                        "packets_received".to_string(),
+                        stats.packets_received.to_string(),
+                    );
+                    stats_map.insert(
+                        "connection_time".to_string(),
+                        stats.connection_time.to_string(),
+                    );
+                    stats_map.insert(
+                        "round_trip_time".to_string(),
+                        stats.round_trip_time.to_string(),
+                    );
 
                     stats_map
                 }
@@ -1249,7 +1261,12 @@ impl HttpClient {
 
             // Send the request with optimized parameters
             client
-                .send_request(&method.to_string(), &path, all_headers.clone(), body.map(|b| b.to_vec()))
+                .send_request(
+                    &method.to_string(),
+                    &path,
+                    all_headers.clone(),
+                    body.map(|b| b.to_vec()),
+                )
                 .await
                 .map_err(|e| {
                     pyo3::exceptions::PyConnectionError::new_err(format!(
