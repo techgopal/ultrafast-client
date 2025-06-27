@@ -35,11 +35,11 @@ reqwest = { version = "0.12", features = [
 ] }
 
 # Production-ready HTTP/3 via Cloudflare Quiche - Stable
-quiche = "0.20"
+quiche = { version = "0.20", optional = true }
 
 # Required for HTTP/3 integration
 tokio-util = { version = "0.7", features = ["codec"] }
-ring = "0.17"  # Cryptographic primitives for QUIC
+ring = { version = "0.17", optional = true }  # Cryptographic primitives for QUIC
 
 # WebSocket support - Updated for security
 tokio-tungstenite = "0.23"
@@ -102,13 +102,13 @@ criterion = { version = "0.5", features = ["html_reports"] }
 pyo3-build-config = "0.20"
 
 [features]
-default = ["native-tls", "http2-enhanced", "http3-quiche"]
+default = ["native-tls", "http2-enhanced"]
 native-tls = ["reqwest/native-tls", "tokio-tungstenite/native-tls"]
 rustls-tls = ["reqwest/rustls-tls", "tokio-tungstenite/rustls-tls-webpki-roots", "rustls", "rustls-pemfile"]
 
 # HTTP Protocol Support (Stable)
 http2-enhanced = []                                          # Stable HTTP/2 optimizations (always available)
-http3-quiche = []                                            # Production-ready HTTP/3 via Quiche (always available)
+http3-quiche = ["quiche", "ring"]                           # Production-ready HTTP/3 via Quiche (optional)
 
 # Protocol combinations (kept for backwards compatibility)
 all-stable = []                                              # HTTP/1.1 + HTTP/2 (stable)
