@@ -92,11 +92,21 @@ jobs:
       - name: Install maturin
         run: pip install maturin
       
-      - name: Build and install package
+      - name: Build package
         run: |
           # Build without http3-quiche to avoid linker issues on Linux
           maturin build --release --features native-tls,http2-enhanced
-          pip install target/wheels/*.whl
+      
+      - name: Install package (Unix)
+        if: runner.os != 'Windows'
+        run: pip install target/wheels/*.whl
+      
+      - name: Install package (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $wheel = Get-ChildItem -Path "target/wheels" -Filter "*.whl" | Select-Object -First 1
+          pip install $wheel.FullName
       
       - name: Install test dependencies
         run: |
