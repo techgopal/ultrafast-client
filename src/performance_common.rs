@@ -353,7 +353,7 @@ impl FastHeaderBuilder {
     }
 
     /// Build into pooled headers for memory efficiency
-    pub fn build_pooled(mut self) -> PooledHeaders {
+    pub fn build_pooled(self) -> PooledHeaders {
         let mut pooled = get_pooled_headers();
         for (name, value) in self.headers {
             pooled.insert(name.to_string(), value.to_string());

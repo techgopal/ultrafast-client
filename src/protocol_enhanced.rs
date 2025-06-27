@@ -324,7 +324,7 @@ impl EnhancedProtocolNegotiator {
         response_time: Duration,
     ) {
         let mut weights = self.preference_weights.write();
-        let mut host_weights = weights.entry(host.to_string()).or_default();
+        let host_weights = weights.entry(host.to_string()).or_default();
 
         // Learning rate for weight adjustment
         let learning_rate = 0.1;

@@ -2,7 +2,6 @@
 // Compiler and Runtime Optimizations for UltraFast HTTP Client
 
 use ahash::AHashMap;
-use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use std::alloc::{GlobalAlloc, Layout, System};
 #[cfg(target_arch = "x86_64")]

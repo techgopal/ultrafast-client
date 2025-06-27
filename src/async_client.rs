@@ -11,15 +11,12 @@ use crate::middleware::{
 };
 use crate::performance_common::HeaderCache;
 use crate::protocol_enhanced::EnhancedProtocolNegotiator;
-use crate::protocol_stats_common::{AsyncProtocolStatsManager, ProtocolStatsManager};
-use crate::rate_limit_common::{AsyncRateLimitManager, RateLimitManager};
+use crate::protocol_stats_common::AsyncProtocolStatsManager;
+use crate::rate_limit_common::AsyncRateLimitManager;
 use crate::response::Response;
-use base64::engine::general_purpose;
-use base64::Engine;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use pyo3::{PyRef, PyRefMut};
-use pyo3_asyncio::tokio::future_into_py;
 use reqwest::{Client, Method};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -220,7 +217,7 @@ impl AsyncHttpClient {
         // if let Some(user_agent) = headers.remove("User-Agent").or_else(|| headers.remove("user-agent")) {
         //     client_builder = client_builder.user_agent(user_agent);
         // }
-        let mut headers = headers.unwrap_or_default();
+        let headers = headers.unwrap_or_default();
 
         let client = client_builder.build().map_err(|e| {
             pyo3::exceptions::PyRuntimeError::new_err(format!(
@@ -230,7 +227,7 @@ impl AsyncHttpClient {
         })?;
 
         // Create middleware manager and add rate limiting if configured
-        let mut middleware_manager = MiddlewareManager::new();
+        let middleware_manager = MiddlewareManager::new();
         if let Some(rate_limit_cfg) = &rate_limit_config {
             let rate_limit_middleware = crate::middleware::RateLimitMiddleware::new(
                 "default_rate_limit".to_string(),
@@ -643,7 +640,7 @@ impl AsyncHttpClient {
 
     #[pyo3(name = "add_middleware")]
     pub fn add_middleware<'p>(
-        mut slf: PyRefMut<'p, Self>,
+        slf: PyRefMut<'p, Self>,
         py: Python<'p>,
         middleware: &'p PyAny,
     ) -> PyResult<&'p PyAny> {
@@ -651,7 +648,7 @@ impl AsyncHttpClient {
         if let Ok(logging) = middleware.extract::<PyRef<LoggingMiddleware>>() {
             let logging_val = (*logging).clone();
             pyo3_asyncio::tokio::future_into_py(py, async move {
-                let mut mgr = manager.lock().await;
+                let mgr = manager.lock().await;
                 mgr.add_logging_middleware(logging_val).map_err(|e| {
                     pyo3::exceptions::PyRuntimeError::new_err(format!(
                         "Failed to add logging middleware: {}",
@@ -663,7 +660,7 @@ impl AsyncHttpClient {
         } else if let Ok(headers) = middleware.extract::<PyRef<HeadersMiddleware>>() {
             let headers_val = (*headers).clone();
             pyo3_asyncio::tokio::future_into_py(py, async move {
-                let mut mgr = manager.lock().await;
+                let mgr = manager.lock().await;
                 mgr.add_headers_middleware(headers_val).map_err(|e| {
                     pyo3::exceptions::PyRuntimeError::new_err(format!(
                         "Failed to add headers middleware: {}",
@@ -675,7 +672,7 @@ impl AsyncHttpClient {
         } else if let Ok(rate_limit) = middleware.extract::<PyRef<RateLimitMiddleware>>() {
             let rate_limit_val = (*rate_limit).clone();
             pyo3_asyncio::tokio::future_into_py(py, async move {
-                let mut mgr = manager.lock().await;
+                let mgr = manager.lock().await;
                 mgr.add_rate_limit_middleware(rate_limit_val);
                 Ok(Python::with_gil(|py| py.None()))
             })
@@ -688,13 +685,13 @@ impl AsyncHttpClient {
 
     #[pyo3(name = "remove_middleware")]
     pub fn remove_middleware<'p>(
-        mut slf: PyRefMut<'p, Self>,
+        slf: PyRefMut<'p, Self>,
         py: Python<'p>,
         name: String,
     ) -> PyResult<&'p PyAny> {
         let manager = slf.middleware_manager.clone();
         pyo3_asyncio::tokio::future_into_py(py, async move {
-            let mut mgr = manager.lock().await;
+            let mgr = manager.lock().await;
             let mut stack = mgr.middleware_stack.write().map_err(|e| {
                 pyo3::exceptions::PyRuntimeError::new_err(format!(
                     "Failed to acquire middleware stack lock: {}",
@@ -752,7 +749,7 @@ impl AsyncHttpClient {
                     )))?
                     .as_millis()
             );
-            let mut body = String::new();
+            let body = String::new();
             let mut body_bytes = Vec::new();
             // Helper function to get MIME type from filename
             fn get_mime_type(filename: &str) -> &'static str {
@@ -883,7 +880,7 @@ impl AsyncHttpClient {
                 .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
 
             // Also update middleware manager for backward compatibility
-            if let Ok(mut middleware_manager_guard) = middleware_manager.try_lock() {
+            if let Ok(middleware_manager_guard) = middleware_manager.try_lock() {
                 if let Some(config) = rate_limit_config {
                     let rate_limit_middleware = crate::middleware::RateLimitMiddleware::new(
                         "config_rate_limit".to_string(),

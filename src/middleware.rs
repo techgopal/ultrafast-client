@@ -4,8 +4,6 @@
 //! HTTP requests and responses in the UltraFast HTTP Client.
 
 use crate::config::{RateLimitAlgorithm, RateLimitConfig};
-use crate::error::UltraFastError;
-use crate::response::Response;
 use ahash::AHashMap;
 use pyo3::prelude::*;
 use std::collections::{HashMap, VecDeque};

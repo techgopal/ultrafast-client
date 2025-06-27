@@ -241,7 +241,7 @@ impl HttpClient {
             })?;
 
         // Create middleware manager and add rate limiting if configured
-        let mut middleware_manager = MiddlewareManager::new();
+        let middleware_manager = MiddlewareManager::new();
         if let Some(rate_limit_cfg) = &rate_limit_config {
             let rate_limit_middleware = crate::middleware::RateLimitMiddleware::new(
                 "default_rate_limit".to_string(),
@@ -408,7 +408,7 @@ impl HttpClient {
 
         // Update middleware manager with new rate limiting configuration
         {
-            let mut middleware_manager = self.middleware_manager.write().map_err(|_| {
+            let middleware_manager = self.middleware_manager.write().map_err(|_| {
                 pyo3::exceptions::PyRuntimeError::new_err(
                     "Failed to acquire middleware manager lock",
                 )
@@ -1687,7 +1687,7 @@ impl HttpClient {
 
         // Initialize rate limiting middleware if configured
         if let Some(rate_limit_cfg) = &self.rate_limit_config {
-            let mut middleware_manager = MiddlewareManager::new();
+            let middleware_manager = MiddlewareManager::new();
             let rate_limit_middleware = crate::middleware::RateLimitMiddleware::new(
                 "default_rate_limit".to_string(),
                 rate_limit_cfg.clone(),
