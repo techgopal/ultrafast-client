@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "ultrafast-client"
-version = "0.1.0"
+version = "0.1.1"
 description = "A blazingly fast HTTP client for Python, built with Rust and Tokio"
 authors = [
     {name = "UltraFast Team", email = "team@ultrafast-client.dev"},

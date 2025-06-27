@@ -88,7 +88,7 @@ def options(url, **kwargs):
     return client.options(url, **kwargs)
 
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __author__ = "UltraFast Team"
 
 __all__ = [
