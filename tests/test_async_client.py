@@ -13,7 +13,6 @@ Tests all features and functionality of the AsyncHttpClient including:
 """
 
 import asyncio
-import json
 import os
 import tempfile
 from typing import Any, Dict

@@ -143,14 +143,14 @@ warn_no_return = true
 warn_unreachable = true
 strict_equality = true
 
-[tool.ruff]
+[tool.ruff.lint]
 # Enable a subset of rules
 select = ["E4", "E7", "E9", "F", "W6"]
 ignore = ["E712", "E722", "B017", "F841"]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
-"tests/*" = ["E712", "E722", "B017", "F841"]
+"tests/*" = ["E712", "E722", "B017", "F841", "F401"]
 
 [tool.coverage.run]
 source = ["ultrafast_client"]

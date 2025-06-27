@@ -2,18 +2,20 @@
 //!
 //! This module provides stub implementations for HTTP/3 support.
 
+use crate::error::UltraFastError;
 use std::collections::HashMap;
 use std::net::SocketAddr;
-use crate::error::UltraFastError;
 
-/// HTTP/3 client - stub implementation 
+/// HTTP/3 client - stub implementation
 #[derive(Clone)]
 pub struct Http3Client;
 
 impl Http3Client {
     /// Create a new HTTP/3 client
     pub async fn new(_server_addr: SocketAddr) -> Result<Self, UltraFastError> {
-        Err(UltraFastError::Http3Error("HTTP/3 support not available".to_string()))
+        Err(UltraFastError::Http3Error(
+            "HTTP/3 support not available".to_string(),
+        ))
     }
 
     /// Send an HTTP/3 request
@@ -24,7 +26,9 @@ impl Http3Client {
         _headers: &HashMap<String, String>,
         _body: Option<&[u8]>,
     ) -> Result<Http3Response, UltraFastError> {
-        Err(UltraFastError::Http3Error("HTTP/3 not available".to_string()))
+        Err(UltraFastError::Http3Error(
+            "HTTP/3 not available".to_string(),
+        ))
     }
 
     /// Check if connection is established
@@ -87,14 +91,16 @@ impl Http3Response {
             let client = reqwest::Client::new();
             client.get("http://localhost/").send().await
         });
-        
+
         // Return an error response if we can't create a dummy response
         match response {
             Ok(resp) => {
                 match crate::response::Response::from_reqwest(resp, &runtime) {
                     Ok(mut response) => {
                         response.status_code = 500;
-                        response.headers.insert("x-error".to_string(), "HTTP/3 not implemented".to_string());
+                        response
+                            .headers
+                            .insert("x-error".to_string(), "HTTP/3 not implemented".to_string());
                         response
                     }
                     Err(_) => {
@@ -176,8 +182,13 @@ impl Http3ConnectionPool {
     }
 
     /// Get a connection from the pool
-    pub async fn get_connection(&self, _server_addr: SocketAddr) -> Result<Http3Client, UltraFastError> {
-        Err(UltraFastError::Http3Error("HTTP/3 not available".to_string()))
+    pub async fn get_connection(
+        &self,
+        _server_addr: SocketAddr,
+    ) -> Result<Http3Client, UltraFastError> {
+        Err(UltraFastError::Http3Error(
+            "HTTP/3 not available".to_string(),
+        ))
     }
 }
 
