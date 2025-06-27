@@ -691,31 +691,12 @@ impl HttpClient {
 
                     stats_map.insert("protocol".to_string(), "HTTP/3".to_string());
                     stats_map.insert("connection_established".to_string(), "true".to_string());
-                    stats_map.insert("bytes_sent".to_string(), stats.sent_bytes.to_string());
-                    stats_map.insert("bytes_received".to_string(), stats.recv_bytes.to_string());
-                    stats_map.insert("lost_packets".to_string(), stats.lost_count.to_string());
-                    stats_map.insert(
-                        "delivered_packets".to_string(),
-                        stats.delivered_count.to_string(),
-                    );
-                    stats_map.insert("rtt_ms".to_string(), stats.rtt.as_millis().to_string());
-                    stats_map.insert("cwnd".to_string(), stats.cwnd.to_string());
-                    stats_map.insert(
-                        "is_established".to_string(),
-                        stats.is_established.to_string(),
-                    );
-
-                    if let Some(min_rtt) = stats.min_rtt {
-                        stats_map.insert("min_rtt_ms".to_string(), min_rtt.as_millis().to_string());
-                    }
-
-                    if let Some(srtt) = stats.srtt {
-                        stats_map.insert("srtt_ms".to_string(), srtt.as_millis().to_string());
-                    }
-
-                    if let Some(rttvar) = stats.rttvar {
-                        stats_map.insert("rttvar_ms".to_string(), rttvar.as_millis().to_string());
-                    }
+                    stats_map.insert("bytes_sent".to_string(), stats.bytes_sent.to_string());
+                    stats_map.insert("bytes_received".to_string(), stats.bytes_received.to_string());
+                    stats_map.insert("packets_sent".to_string(), stats.packets_sent.to_string());
+                    stats_map.insert("packets_received".to_string(), stats.packets_received.to_string());
+                    stats_map.insert("connection_time".to_string(), stats.connection_time.to_string());
+                    stats_map.insert("round_trip_time".to_string(), stats.round_trip_time.to_string());
 
                     stats_map
                 }
@@ -1268,7 +1249,7 @@ impl HttpClient {
 
             // Send the request with optimized parameters
             client
-                .send_request(&method.to_string(), &path, &all_headers, body.as_deref())
+                .send_request(&method.to_string(), &path, all_headers.clone(), body.map(|b| b.to_vec()))
                 .await
                 .map_err(|e| {
                     pyo3::exceptions::PyConnectionError::new_err(format!(

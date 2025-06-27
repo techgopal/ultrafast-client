@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 pub struct EnhancedProtocolNegotiator {
     protocol_cache: Arc<RwLock<AHashMap<String, HostCapabilities>>>,
     metrics_cache: Arc<RwLock<AHashMap<String, ProtocolMetrics>>>,
-    weights: Arc<RwLock<ProtocolWeights>>,
+    weights: Arc<RwLock<AHashMap<String, ProtocolWeights>>>,
     #[allow(dead_code)]
     fallback_strategy: ProtocolFallback,
     // Cache settings with TTL support
@@ -112,7 +112,7 @@ impl EnhancedProtocolNegotiator {
         Self {
             protocol_cache: Arc::new(RwLock::new(AHashMap::new())),
             metrics_cache: Arc::new(RwLock::new(AHashMap::new())),
-            weights: Arc::new(RwLock::new(AHashMap::new())),
+            weights: Arc::new(RwLock::new(AHashMap::<String, ProtocolWeights>::new())),
             fallback_strategy,
             cache_ttl: Duration::from_secs(3600), // 1 hour cache
             dns_cache: Arc::new(RwLock::new(AHashMap::new())),
@@ -148,7 +148,7 @@ impl EnhancedProtocolNegotiator {
 
     /// Get cached capabilities with fast read lock
     fn get_cached_capabilities(&self, host: &str) -> Option<HostCapabilities> {
-        let cache = self.protocol_cache.read();
+        let cache = self.protocol_cache.read().ok()?;
         cache.get(host).cloned()
     }
 
@@ -230,15 +230,18 @@ impl EnhancedProtocolNegotiator {
 
     /// Get protocol weights for a host
     fn get_protocol_weights(&self, host: &str) -> ProtocolWeights {
-        let weights = self.weights.read();
-        weights.get(host).cloned().unwrap_or_else(|| {
-            ProtocolWeights {
-                http1_weight: 1.0,
-                http2_weight: 1.5, // Prefer HTTP/2 by default
-                http3_weight: 2.0, // Prefer HTTP/3 most by default
-                last_updated: Instant::now(),
-            }
-        })
+        if let Ok(weights) = self.weights.read() {
+            weights.get(host).cloned().unwrap_or_else(|| {
+                ProtocolWeights {
+                    http1_weight: 1.0,
+                    http2_weight: 1.5, // Prefer HTTP/2 by default
+                    http3_weight: 2.0, // Prefer HTTP/3 most by default
+                    last_updated: Instant::now(),
+                }
+            })
+        } else {
+            ProtocolWeights::default()
+        }
     }
 
     /// Detect protocol capabilities for a host
@@ -261,8 +264,9 @@ impl EnhancedProtocolNegotiator {
 
     /// Update the protocol capabilities cache
     fn update_cache(&self, host: &str, capabilities: HostCapabilities) {
-        let mut cache = self.protocol_cache.write();
-        cache.insert(host.to_string(), capabilities);
+        if let Ok(mut cache) = self.protocol_cache.write() {
+            cache.insert(host.to_string(), capabilities);
+        }
     }
 
     /// Update protocol performance metrics after a request
@@ -273,38 +277,39 @@ impl EnhancedProtocolNegotiator {
         success: bool,
         response_time: Duration,
     ) {
-        let mut cache = self.protocol_cache.write();
-        if let Some(capabilities) = cache.get_mut(host) {
-            let metrics = match protocol {
-                HttpVersion::Http1 => &mut capabilities.http1_metrics,
-                HttpVersion::Http2 => &mut capabilities.http2_metrics,
-                HttpVersion::Http3 => &mut capabilities.http3_metrics,
-                HttpVersion::Auto => &mut capabilities.http1_metrics, // Fallback
-            };
+        if let Ok(mut cache) = self.protocol_cache.write() {
+            if let Some(capabilities) = cache.get_mut(host) {
+                let metrics = match protocol {
+                    HttpVersion::Http1 => &mut capabilities.http1_metrics,
+                    HttpVersion::Http2 => &mut capabilities.http2_metrics,
+                    HttpVersion::Http3 => &mut capabilities.http3_metrics,
+                    HttpVersion::Auto => &mut capabilities.http1_metrics, // Fallback
+                };
 
-            metrics.request_count += 1;
-            if success {
-                metrics.success_count += 1;
-            } else {
-                metrics.connection_errors += 1;
+                metrics.request_count += 1;
+                if success {
+                    metrics.success_count += 1;
+                } else {
+                    metrics.connection_errors += 1;
+                }
+                metrics.total_response_time += response_time;
+                metrics.last_used = Some(Instant::now());
+
+                // Update overall success rate
+                let total_requests = capabilities.http1_metrics.request_count
+                    + capabilities.http2_metrics.request_count
+                    + capabilities.http3_metrics.request_count;
+                let total_successes = capabilities.http1_metrics.success_count
+                    + capabilities.http2_metrics.success_count
+                    + capabilities.http3_metrics.success_count;
+
+                if total_requests > 0 {
+                    capabilities.success_rate = total_successes as f64 / total_requests as f64;
+                }
+
+                // Update protocol weights based on performance
+                self.update_protocol_weights(host, protocol, success, response_time);
             }
-            metrics.total_response_time += response_time;
-            metrics.last_used = Some(Instant::now());
-
-            // Update overall success rate
-            let total_requests = capabilities.http1_metrics.request_count
-                + capabilities.http2_metrics.request_count
-                + capabilities.http3_metrics.request_count;
-            let total_successes = capabilities.http1_metrics.success_count
-                + capabilities.http2_metrics.success_count
-                + capabilities.http3_metrics.success_count;
-
-            if total_requests > 0 {
-                capabilities.success_rate = total_successes as f64 / total_requests as f64;
-            }
-
-            // Update protocol weights based on performance
-            self.update_protocol_weights(host, protocol, success, response_time);
         }
     }
 
@@ -316,52 +321,61 @@ impl EnhancedProtocolNegotiator {
         success: bool,
         response_time: Duration,
     ) {
-        let mut weights = self.weights.write();
-        let host_weights = weights.entry(host.to_string()).or_default();
+        if let Ok(mut weights) = self.weights.write() {
+            let host_weights = weights.entry(host.to_string()).or_insert_with(ProtocolWeights::default);
 
-        // Learning rate for weight adjustment
-        let learning_rate = 0.1;
-        let performance_score = if success {
-            // Better performance = higher weight
-            1.0 / (response_time.as_millis() as f64 + 1.0)
-        } else {
-            // Failure = lower weight
-            -0.1
-        };
+            // Learning rate for weight adjustment
+            let learning_rate = 0.1;
+            let performance_score = if success {
+                // Better performance = higher weight
+                1.0 / (response_time.as_millis() as f64 + 1.0)
+            } else {
+                // Failure = lower weight
+                -0.1
+            };
 
-        match protocol {
-            HttpVersion::Http1 => {
-                host_weights.http1_weight =
-                    (host_weights.http1_weight + learning_rate * performance_score).max(0.1);
+            match protocol {
+                HttpVersion::Http1 => {
+                    host_weights.http1_weight = (host_weights.http1_weight 
+                        + learning_rate * performance_score).max(0.1);
+                }
+                HttpVersion::Http2 => {
+                    host_weights.http2_weight = (host_weights.http2_weight 
+                        + learning_rate * performance_score).max(0.1);
+                }
+                HttpVersion::Http3 => {
+                    host_weights.http3_weight = (host_weights.http3_weight 
+                        + learning_rate * performance_score).max(0.1);
+                }
+                HttpVersion::Auto => {} // No-op
             }
-            HttpVersion::Http2 => {
-                host_weights.http2_weight =
-                    (host_weights.http2_weight + learning_rate * performance_score).max(0.1);
-            }
-            HttpVersion::Http3 => {
-                host_weights.http3_weight =
-                    (host_weights.http3_weight + learning_rate * performance_score).max(0.1);
-            }
-            HttpVersion::Auto => {} // No learning for auto
+
+            host_weights.last_updated = Instant::now();
         }
-
-        host_weights.last_updated = Instant::now();
     }
 
     /// Get cache statistics for monitoring
     pub fn get_cache_stats(&self) -> CacheStats {
-        let cache = self.protocol_cache.read();
-        
-        CacheStats {
-            cache_hits: 0, // Simplified - not tracking hits/misses anymore
-            cache_misses: 0,
-            hit_rate: 0.0,
-            cached_hosts: cache.len(),
-            cache_size_bytes: std::mem::size_of_val(&*cache)
-                + cache
-                    .iter()
-                    .map(|(k, v)| k.len() + std::mem::size_of_val(v))
-                    .sum::<usize>(),
+        if let Ok(cache) = self.protocol_cache.read() {
+            CacheStats {
+                cache_hits: 0, // Simplified - not tracking hits/misses anymore
+                cache_misses: 0,
+                hit_rate: 0.0,
+                cached_hosts: cache.len(),
+                cache_size_bytes: std::mem::size_of_val(&*cache)
+                    + cache
+                        .iter()
+                        .map(|(k, v)| k.len() + std::mem::size_of_val(v))
+                        .sum::<usize>(),
+            }
+        } else {
+            CacheStats {
+                cache_hits: 0,
+                cache_misses: 0,
+                hit_rate: 0.0,
+                cached_hosts: 0,
+                cache_size_bytes: 0,
+            }
         }
     }
 
@@ -370,23 +384,21 @@ impl EnhancedProtocolNegotiator {
         let now = Instant::now();
 
         // Clean up capability cache
-        {
-            let mut cache = self.protocol_cache.write();
+        if let Ok(mut cache) = self.protocol_cache.write() {
             cache.retain(|_, capabilities| {
                 now.duration_since(capabilities.last_updated) < self.cache_ttl
             });
         }
 
         // Clean up DNS cache
-        {
-            let mut dns_cache = self.dns_cache.write();
-            dns_cache
-                .retain(|_, (_, timestamp)| now.duration_since(*timestamp) < self.dns_cache_ttl);
+        if let Ok(mut dns_cache) = self.dns_cache.write() {
+            dns_cache.retain(|_, (_, timestamp)| {
+                now.duration_since(*timestamp) < self.dns_cache_ttl
+            });
         }
 
         // Clean up preference weights (keep longer)
-        {
-            let mut weights = self.weights.write();
+        if let Ok(mut weights) = self.weights.write() {
             let weight_ttl = Duration::from_secs(86400); // 24 hours
             weights.retain(|_, weight| now.duration_since(weight.last_updated) < weight_ttl);
         }

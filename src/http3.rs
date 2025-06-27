@@ -37,6 +37,11 @@ impl Http3Client {
         false
     }
 
+    /// Get HTTP/3 connection statistics - returns stub stats
+    pub async fn stats(&self) -> Http3Stats {
+        Http3Stats::default()
+    }
+
     /// Close the connection - no-op
     pub async fn close(&self) {
         // No-op for stub implementation
@@ -151,29 +156,16 @@ impl Http3Response {
     }
 }
 
-/// HTTP/3 connection statistics
-#[derive(Default)]
+/// Stub HTTP/3 statistics
+#[derive(Default, Debug, Clone)]
+#[allow(dead_code)]
 pub struct Http3Stats {
-    /// Round trip time
-    pub rtt: std::time::Duration,
-    /// Smoothed RTT (SRTT)
-    pub srtt: Option<std::time::Duration>,
-    /// RTT variance
-    pub rttvar: Option<std::time::Duration>,
-    /// Minimum observed RTT
-    pub min_rtt: Option<std::time::Duration>,
-    /// Congestion window size in bytes
-    pub cwnd: usize,
-    /// Total bytes sent
-    pub sent_bytes: u64,
-    /// Total bytes received
-    pub recv_bytes: u64,
-    /// Lost packets count
-    pub lost_count: u64,
-    /// Packets delivered count
-    pub delivered_count: u64,
-    /// Connection state
-    pub is_established: bool,
+    pub packets_sent: u64,
+    pub packets_received: u64,
+    pub bytes_sent: u64,
+    pub bytes_received: u64,
+    pub connection_time: f64,
+    pub round_trip_time: f64,
 }
 
 /// HTTP/3 connection pool
