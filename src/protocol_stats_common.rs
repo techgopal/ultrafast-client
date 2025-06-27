@@ -14,6 +14,7 @@ pub struct ProtocolStatsManager {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ProtocolStats {
     pub protocol_version: String,
     pub connection_time: Option<Duration>,

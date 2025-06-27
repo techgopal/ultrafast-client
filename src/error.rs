@@ -110,7 +110,8 @@ impl From<ClientError> for UltraFastError {
     }
 }
 
-/// Result type for client operations
+/// Convenient type alias for Results in the ultrafast-client library
+#[allow(dead_code)]
 pub type ClientResult<T> = Result<T, ClientError>;
 
 /// Map reqwest errors to PyO3 exceptions

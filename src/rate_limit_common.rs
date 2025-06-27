@@ -63,6 +63,7 @@ impl RateLimitManager {
     }
 
     /// Check if a request to the given host should be allowed
+    #[allow(dead_code)]
     pub fn check_rate_limit(&self, host: &str) -> bool {
         self.middleware
             .as_ref()
@@ -149,6 +150,7 @@ impl AsyncRateLimitManager {
     }
 
     /// Check if a request to the given host should be allowed
+    #[allow(dead_code)]
     pub async fn check_rate_limit(&self, host: &str) -> bool {
         let manager = self.inner.lock().await;
         manager.check_rate_limit(host)

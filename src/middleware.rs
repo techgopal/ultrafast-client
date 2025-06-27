@@ -26,8 +26,10 @@ impl Middleware {
 pub struct MiddlewareStack {
     pub logging_middleware: Vec<LoggingMiddleware>,
     pub headers_middleware: Vec<HeadersMiddleware>,
+    #[allow(dead_code)]
     pub retry_middleware: Vec<RetryMiddleware>,
     pub metrics_middleware: Vec<MetricsMiddleware>,
+    #[allow(dead_code)]
     pub interceptor_middleware: Vec<InterceptorMiddleware>,
     pub rate_limit_middleware: Vec<RateLimitMiddleware>,
 }
@@ -64,18 +66,21 @@ impl MiddlewareStack {
         }
     }
 
+    #[allow(dead_code)]
     pub fn add_retry_middleware(&mut self, middleware: RetryMiddleware) {
         if self.retry_middleware.len() < 100 {
             self.retry_middleware.push(middleware);
         }
     }
 
+    #[allow(dead_code)]
     pub fn add_metrics_middleware(&mut self, middleware: MetricsMiddleware) {
         if self.metrics_middleware.len() < 100 {
             self.metrics_middleware.push(middleware);
         }
     }
 
+    #[allow(dead_code)]
     pub fn add_interceptor_middleware(&mut self, middleware: InterceptorMiddleware) {
         if self.interceptor_middleware.len() < 100 {
             self.interceptor_middleware.push(middleware);

@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 /// High-performance header pool for reducing allocations
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct HeaderPool {
     pool: Arc<Mutex<Vec<AHashMap<String, String>>>>,
     max_pool_size: usize,
@@ -20,6 +21,7 @@ pub struct HeaderPool {
     default_capacity: usize,
 }
 
+#[allow(dead_code)]
 impl HeaderPool {
     const DEFAULT_POOL_SIZE: usize = 128;
     const DEFAULT_CAPACITY: usize = 16; // Most requests have < 16 headers
@@ -63,12 +65,14 @@ impl HeaderPool {
 }
 
 /// A header map that returns to the pool when dropped
+#[allow(dead_code)]
 pub struct PooledHeaders {
     pub headers: AHashMap<String, String>,
     pool: Arc<Mutex<Vec<AHashMap<String, String>>>>,
     max_pool_size: usize,
 }
 
+#[allow(dead_code)]
 impl PooledHeaders {
     /// Insert a header with zero-copy string operations where possible
     pub fn insert_cow(&mut self, key: Cow<'_, str>, value: Cow<'_, str>) {
@@ -100,12 +104,14 @@ impl Drop for PooledHeaders {
 }
 
 /// A string that returns to the pool when dropped
+#[allow(dead_code)]
 pub struct PooledString {
     pub string: String,
     pool: Arc<Mutex<Vec<String>>>,
     max_pool_size: usize,
 }
 
+#[allow(dead_code)]
 impl PooledString {
     /// Push a string slice
     pub fn push_str(&mut self, s: &str) {
@@ -131,19 +137,23 @@ impl Drop for PooledString {
 }
 
 /// Global header pool instance
+#[allow(dead_code)]
 static HEADER_POOL: Lazy<HeaderPool> = Lazy::new(|| HeaderPool::new(256));
 
 /// Get a header map from the global pool
+#[allow(dead_code)]
 pub fn get_pooled_headers() -> PooledHeaders {
     HEADER_POOL.get()
 }
 
 /// Get a string from the global pool
+#[allow(dead_code)]
 pub fn get_pooled_string() -> PooledString {
     HEADER_POOL.get_string()
 }
 
 /// Fast header operations with string interning
+#[allow(dead_code)]
 pub struct HeaderCache {
     // Intern common header names for zero-allocation lookups
     header_names: Arc<RwLock<AHashMap<String, Arc<str>>>>,
@@ -151,6 +161,7 @@ pub struct HeaderCache {
     header_values: Arc<RwLock<AHashMap<String, Arc<str>>>>,
 }
 
+#[allow(dead_code)]
 impl HeaderCache {
     pub fn new() -> Self {
         let mut header_names = AHashMap::with_capacity(64);
@@ -300,25 +311,30 @@ impl HeaderCache {
 }
 
 /// Global header cache instance
+#[allow(dead_code)]
 static HEADER_CACHE: Lazy<HeaderCache> = Lazy::new(HeaderCache::new);
 
-/// Intern a header name for performance
+/// Intern a header name using the global cache
+#[allow(dead_code)]
 pub fn intern_header(header: &str) -> Arc<str> {
     HEADER_CACHE.intern_name(header)
 }
 
-/// Intern a header value for performance
+/// Intern a header value using the global cache
+#[allow(dead_code)]
 pub fn intern_value(value: &str) -> Arc<str> {
     HEADER_CACHE.intern_value(value)
 }
 
 /// Fast header builder using stack-allocated vectors for small header sets
+#[allow(dead_code)]
 pub struct FastHeaderBuilder {
     // Use SmallVec to avoid heap allocation for small header sets (< 8 headers)
     headers: SmallVec<[(Arc<str>, Arc<str>); 8]>,
     pooled_headers: Option<PooledHeaders>,
 }
 
+#[allow(dead_code)]
 impl FastHeaderBuilder {
     pub fn new() -> Self {
         Self {
@@ -370,11 +386,13 @@ impl Default for FastHeaderBuilder {
 
 /// Zero-copy response body wrapper for improved performance
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct ZeroCopyBody {
     data: Bytes,
     content_type: Option<Arc<str>>,
 }
 
+#[allow(dead_code)]
 impl ZeroCopyBody {
     pub fn new(data: Bytes, content_type: Option<&str>) -> Self {
         Self {
@@ -410,13 +428,15 @@ impl ZeroCopyBody {
     }
 }
 
-/// Enhanced memory pool for various data structures
+/// Generic memory pool for any type
+#[allow(dead_code)]
 pub struct MemoryPool<T> {
     pool: Arc<Mutex<Vec<T>>>,
     factory: fn() -> T,
     max_size: usize,
 }
 
+#[allow(dead_code)]
 impl<T> MemoryPool<T> {
     pub fn new(factory: fn() -> T, max_size: usize) -> Self {
         Self {
@@ -438,12 +458,15 @@ impl<T> MemoryPool<T> {
     }
 }
 
+/// An item that returns to the memory pool when dropped
+#[allow(dead_code)]
 pub struct PooledItem<T> {
     item: Option<T>,
     pool: Arc<Mutex<Vec<T>>>,
     max_size: usize,
 }
 
+#[allow(dead_code)]
 impl<T> PooledItem<T> {
     pub fn get(&self) -> PyResult<&T> {
         self.item

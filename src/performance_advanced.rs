@@ -403,6 +403,7 @@ impl SIMDStringOps {
 }
 
 /// CPU-specific optimizations detector with feature detection
+#[allow(dead_code)]
 pub struct CPUOptimizer {
     has_avx2: bool,
     has_sse4_2: bool,
@@ -410,6 +411,7 @@ pub struct CPUOptimizer {
     cache_line_size: usize,
 }
 
+#[allow(dead_code)]
 impl CPUOptimizer {
     pub fn new() -> Self {
         #[cfg(target_arch = "x86_64")]
@@ -457,6 +459,7 @@ impl CPUOptimizer {
 }
 
 /// Profile-guided optimization data collector with bounds checking
+#[allow(dead_code)]
 pub struct ProfileCollector {
     header_frequency: Mutex<AHashMap<String, u64>>,
     url_patterns: Mutex<AHashMap<String, u64>>,
@@ -468,6 +471,7 @@ pub struct ProfileCollector {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct ConnectionProfile {
     pub avg_response_time: f64,
     pub success_rate: f64,
@@ -475,6 +479,7 @@ pub struct ConnectionProfile {
     pub typical_payload_size: usize,
 }
 
+#[allow(dead_code)]
 impl ProfileCollector {
     pub fn new() -> Self {
         Self {
@@ -676,6 +681,7 @@ impl ProfileCollector {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct OptimizationHints {
     pub common_headers: Vec<String>,
     pub typical_response_size: usize,
@@ -684,12 +690,14 @@ pub struct OptimizationHints {
 }
 
 /// Runtime optimization engine that adapts based on usage patterns
+#[allow(dead_code)]
 pub struct RuntimeOptimizer {
     cpu_optimizer: CPUOptimizer,
     profile_collector: ProfileCollector,
     optimization_hints: Mutex<Option<OptimizationHints>>,
 }
 
+#[allow(dead_code)]
 impl RuntimeOptimizer {
     pub fn new() -> Self {
         Self {

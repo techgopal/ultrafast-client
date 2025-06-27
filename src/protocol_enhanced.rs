@@ -7,23 +7,23 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-/// Enhanced protocol negotiation and selection logic with performance optimizations
-#[derive(Debug, Clone)]
+/// Enhanced protocol negotiator with machine learning capabilities
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct EnhancedProtocolNegotiator {
-    /// Cache of known protocol capabilities per host using AHashMap for performance
-    capability_cache: Arc<RwLock<AHashMap<String, HostCapabilities>>>,
-    /// Protocol selection strategy
+    protocol_cache: Arc<RwLock<AHashMap<String, HostCapabilities>>>,
+    metrics_cache: Arc<RwLock<AHashMap<String, ProtocolMetrics>>>,
+    weights: Arc<RwLock<ProtocolWeights>>,
+    #[allow(dead_code)]
     fallback_strategy: ProtocolFallback,
-    /// Cache TTL for capabilities
+    // Add performance optimizations
+    connection_pool: Arc<ConnectionPool>,
+    // Cache settings with TTL support
     cache_ttl: Duration,
-    /// Performance metrics using atomics for lock-free updates
-    cache_hits: Arc<AtomicU64>,
-    cache_misses: Arc<AtomicU64>,
-    /// DNS resolution cache for faster lookups
+    #[allow(dead_code)]
     dns_cache: Arc<RwLock<AHashMap<String, (Vec<SocketAddr>, Instant)>>>,
+    #[allow(dead_code)]
     dns_cache_ttl: Duration,
-    /// Protocol preference learning
-    preference_weights: Arc<RwLock<AHashMap<String, ProtocolWeights>>>,
 }
 
 /// Enhanced host capabilities with detailed performance tracking
@@ -113,14 +113,14 @@ impl EnhancedProtocolNegotiator {
     /// Create a new enhanced protocol negotiator
     pub fn new(fallback_strategy: ProtocolFallback) -> Self {
         Self {
-            capability_cache: Arc::new(RwLock::new(AHashMap::new())),
+            protocol_cache: Arc::new(RwLock::new(AHashMap::new())),
+            metrics_cache: Arc::new(RwLock::new(AHashMap::new())),
+            weights: Arc::new(RwLock::new(AHashMap::new())),
             fallback_strategy,
+            connection_pool: Arc::new(ConnectionPool::new()),
             cache_ttl: Duration::from_secs(3600), // 1 hour cache
-            cache_hits: Arc::new(AtomicU64::new(0)),
-            cache_misses: Arc::new(AtomicU64::new(0)),
             dns_cache: Arc::new(RwLock::new(AHashMap::new())),
             dns_cache_ttl: Duration::from_secs(300), // 5 minute DNS cache
-            preference_weights: Arc::new(RwLock::new(AHashMap::new())),
         }
     }
 
@@ -155,7 +155,7 @@ impl EnhancedProtocolNegotiator {
 
     /// Get cached capabilities with fast read lock
     fn get_cached_capabilities(&self, host: &str) -> Option<HostCapabilities> {
-        let cache = self.capability_cache.read();
+        let cache = self.protocol_cache.read();
         cache.get(host).cloned()
     }
 
@@ -237,7 +237,7 @@ impl EnhancedProtocolNegotiator {
 
     /// Get protocol weights for a host
     fn get_protocol_weights(&self, host: &str) -> ProtocolWeights {
-        let weights = self.preference_weights.read();
+        let weights = self.weights.read();
         weights.get(host).cloned().unwrap_or_else(|| {
             ProtocolWeights {
                 http1_weight: 1.0,
@@ -268,7 +268,7 @@ impl EnhancedProtocolNegotiator {
 
     /// Update the protocol capabilities cache
     fn update_cache(&self, host: &str, capabilities: HostCapabilities) {
-        let mut cache = self.capability_cache.write();
+        let mut cache = self.protocol_cache.write();
         cache.insert(host.to_string(), capabilities);
     }
 
@@ -280,7 +280,7 @@ impl EnhancedProtocolNegotiator {
         success: bool,
         response_time: Duration,
     ) {
-        let mut cache = self.capability_cache.write();
+        let mut cache = self.protocol_cache.write();
         if let Some(capabilities) = cache.get_mut(host) {
             let metrics = match protocol {
                 HttpVersion::Http1 => &mut capabilities.http1_metrics,
@@ -323,7 +323,7 @@ impl EnhancedProtocolNegotiator {
         success: bool,
         response_time: Duration,
     ) {
-        let mut weights = self.preference_weights.write();
+        let mut weights = self.weights.write();
         let host_weights = weights.entry(host.to_string()).or_default();
 
         // Learning rate for weight adjustment
@@ -366,7 +366,7 @@ impl EnhancedProtocolNegotiator {
             0.0
         };
 
-        let cache = self.capability_cache.read();
+        let cache = self.protocol_cache.read();
         CacheStats {
             cache_hits: hits,
             cache_misses: misses,
@@ -386,7 +386,7 @@ impl EnhancedProtocolNegotiator {
 
         // Clean up capability cache
         {
-            let mut cache = self.capability_cache.write();
+            let mut cache = self.protocol_cache.write();
             cache.retain(|_, capabilities| {
                 now.duration_since(capabilities.last_updated) < self.cache_ttl
             });
@@ -401,7 +401,7 @@ impl EnhancedProtocolNegotiator {
 
         // Clean up preference weights (keep longer)
         {
-            let mut weights = self.preference_weights.write();
+            let mut weights = self.weights.write();
             let weight_ttl = Duration::from_secs(86400); // 24 hours
             weights.retain(|_, weight| now.duration_since(weight.last_updated) < weight_ttl);
         }

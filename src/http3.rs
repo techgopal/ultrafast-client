@@ -6,43 +6,46 @@ use crate::error::UltraFastError;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 
-/// HTTP/3 client - stub implementation
-#[derive(Clone)]
+/// Stub HTTP/3 client - HTTP/3 support is disabled
+#[allow(dead_code)]
 pub struct Http3Client;
 
+#[allow(dead_code)]
 impl Http3Client {
     /// Create a new HTTP/3 client
     pub async fn new(_server_addr: SocketAddr) -> Result<Self, UltraFastError> {
         Err(UltraFastError::Http3Error(
-            "HTTP/3 support not available".to_string(),
+            "HTTP/3 support is disabled in this build".to_string(),
         ))
     }
 
-    /// Send an HTTP/3 request
+    /// Send a request - always returns an error
     pub async fn send_request(
         &self,
         _method: &str,
-        _path: &str,
-        _headers: &HashMap<String, String>,
-        _body: Option<&[u8]>,
+        _uri: &str,
+        _headers: HashMap<String, String>,
+        _body: Option<Vec<u8>>,
     ) -> Result<Http3Response, UltraFastError> {
         Err(UltraFastError::Http3Error(
-            "HTTP/3 not available".to_string(),
+            "HTTP/3 support is disabled in this build".to_string(),
         ))
     }
 
-    /// Check if connection is established
+    /// Check if connection is established - always returns false
     pub async fn is_established(&self) -> bool {
         false
     }
 
-    /// Get connection statistics
-    pub async fn stats(&self) -> Http3Stats {
-        Http3Stats::default()
+    /// Close the connection - no-op
+    pub async fn close(&self) {
+        // No-op for stub implementation
     }
 }
 
-/// HTTP/3 response structure
+/// Stub HTTP/3 response - HTTP/3 support is disabled
+#[derive(Debug)]
+#[allow(dead_code)]
 pub struct Http3Response {
     /// Status code
     pub status: u16,
@@ -72,6 +75,7 @@ impl Default for Http3Response {
     }
 }
 
+#[allow(dead_code)]
 impl Http3Response {
     /// Create a new response
     pub fn new() -> Self {
