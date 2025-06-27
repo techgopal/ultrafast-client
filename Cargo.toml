@@ -1,6 +1,6 @@
 [package]
 name = "ultrafast-client"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["UltraFast Team <team@ultrafast-client.dev>"]
 edition = "2021"
 description = "A blazingly fast HTTP client for Python, built with Rust and Tokio"
