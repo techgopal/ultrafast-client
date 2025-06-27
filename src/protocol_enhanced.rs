@@ -1,11 +1,11 @@
 use crate::config::{HttpVersion, ProtocolConfig, ProtocolFallback};
-use std::net::SocketAddr;
-use std::time::{Duration, Instant};
-use parking_lot::RwLock;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
 use ahash::AHashMap;
 use once_cell::sync::Lazy;
+use parking_lot::RwLock;
+use std::net::SocketAddr;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 /// Enhanced protocol negotiation and selection logic with performance optimizations
 #[derive(Debug, Clone)]
@@ -125,27 +125,17 @@ impl EnhancedProtocolNegotiator {
     }
 
     /// Select the best protocol for a given URL with intelligent caching
-    pub async fn select_protocol(
-        &self,
-        url: &str,
-        config: &ProtocolConfig,
-    ) -> HttpVersion {
+    pub async fn select_protocol(&self, url: &str, config: &ProtocolConfig) -> HttpVersion {
         let host = extract_host(url);
-        
+
         match &config.preferred_version {
-            HttpVersion::Auto => {
-                self.auto_select_protocol(&host, config).await
-            }
+            HttpVersion::Auto => self.auto_select_protocol(&host, config).await,
             specific_version => specific_version.clone(),
         }
     }
 
     /// Automatically select the best protocol using machine learning-like approach
-    async fn auto_select_protocol(
-        &self,
-        host: &str,
-        config: &ProtocolConfig,
-    ) -> HttpVersion {
+    async fn auto_select_protocol(&self, host: &str, config: &ProtocolConfig) -> HttpVersion {
         // Fast path: check cache first
         if let Some(capabilities) = self.get_cached_capabilities(host) {
             if !self.is_cache_expired(&capabilities) {
@@ -240,7 +230,7 @@ impl EnhancedProtocolNegotiator {
 
         // Lower response time is better, so invert it
         let time_score = 1000.0 / (avg_response_time + 1.0);
-        
+
         // Combine factors: weight * success_rate * time_score * reliability
         weight * success_rate * time_score * reliability * 0.0001
     }
@@ -252,7 +242,7 @@ impl EnhancedProtocolNegotiator {
             ProtocolWeights {
                 http1_weight: 1.0,
                 http2_weight: 1.5, // Prefer HTTP/2 by default
-                http3_weight: 2.0,  // Prefer HTTP/3 most by default
+                http3_weight: 2.0, // Prefer HTTP/3 most by default
                 last_updated: Instant::now(),
             }
         })
@@ -262,7 +252,7 @@ impl EnhancedProtocolNegotiator {
     async fn detect_protocol_capabilities(&self, host: &str) -> HostCapabilities {
         // In a real implementation, this would perform actual protocol detection
         // For now, we'll use heuristics and return optimistic capabilities
-        
+
         let mut capabilities = HostCapabilities::default();
         capabilities.last_updated = Instant::now();
 
@@ -270,11 +260,8 @@ impl EnhancedProtocolNegotiator {
         capabilities.http2_available = true;
         capabilities.http3_available = true;
         capabilities.max_version = HttpVersion::Http3;
-        capabilities.alpn_protocols = vec![
-            "h3".to_string(),
-            "h2".to_string(),
-            "http/1.1".to_string(),
-        ];
+        capabilities.alpn_protocols =
+            vec!["h3".to_string(), "h2".to_string(), "http/1.1".to_string()];
 
         capabilities
     }
@@ -312,12 +299,12 @@ impl EnhancedProtocolNegotiator {
             metrics.last_used = Some(Instant::now());
 
             // Update overall success rate
-            let total_requests = capabilities.http1_metrics.request_count +
-                               capabilities.http2_metrics.request_count +
-                               capabilities.http3_metrics.request_count;
-            let total_successes = capabilities.http1_metrics.success_count +
-                                capabilities.http2_metrics.success_count +
-                                capabilities.http3_metrics.success_count;
+            let total_requests = capabilities.http1_metrics.request_count
+                + capabilities.http2_metrics.request_count
+                + capabilities.http3_metrics.request_count;
+            let total_successes = capabilities.http1_metrics.success_count
+                + capabilities.http2_metrics.success_count
+                + capabilities.http3_metrics.success_count;
 
             if total_requests > 0 {
                 capabilities.success_rate = total_successes as f64 / total_requests as f64;
@@ -351,13 +338,16 @@ impl EnhancedProtocolNegotiator {
 
         match protocol {
             HttpVersion::Http1 => {
-                host_weights.http1_weight = (host_weights.http1_weight + learning_rate * performance_score).max(0.1);
+                host_weights.http1_weight =
+                    (host_weights.http1_weight + learning_rate * performance_score).max(0.1);
             }
             HttpVersion::Http2 => {
-                host_weights.http2_weight = (host_weights.http2_weight + learning_rate * performance_score).max(0.1);
+                host_weights.http2_weight =
+                    (host_weights.http2_weight + learning_rate * performance_score).max(0.1);
             }
             HttpVersion::Http3 => {
-                host_weights.http3_weight = (host_weights.http3_weight + learning_rate * performance_score).max(0.1);
+                host_weights.http3_weight =
+                    (host_weights.http3_weight + learning_rate * performance_score).max(0.1);
             }
             HttpVersion::Auto => {} // No learning for auto
         }
@@ -370,7 +360,11 @@ impl EnhancedProtocolNegotiator {
         let hits = self.cache_hits.load(Ordering::Relaxed);
         let misses = self.cache_misses.load(Ordering::Relaxed);
         let total = hits + misses;
-        let hit_rate = if total > 0 { hits as f64 / total as f64 } else { 0.0 };
+        let hit_rate = if total > 0 {
+            hits as f64 / total as f64
+        } else {
+            0.0
+        };
 
         let cache = self.capability_cache.read();
         CacheStats {
@@ -378,15 +372,18 @@ impl EnhancedProtocolNegotiator {
             cache_misses: misses,
             hit_rate,
             cached_hosts: cache.len(),
-            cache_size_bytes: std::mem::size_of_val(&*cache) + 
-                            cache.iter().map(|(k, v)| k.len() + std::mem::size_of_val(v)).sum::<usize>(),
+            cache_size_bytes: std::mem::size_of_val(&*cache)
+                + cache
+                    .iter()
+                    .map(|(k, v)| k.len() + std::mem::size_of_val(v))
+                    .sum::<usize>(),
         }
     }
 
     /// Clean up expired cache entries
     pub fn cleanup_expired_entries(&self) {
         let now = Instant::now();
-        
+
         // Clean up capability cache
         {
             let mut cache = self.capability_cache.write();
@@ -398,18 +395,15 @@ impl EnhancedProtocolNegotiator {
         // Clean up DNS cache
         {
             let mut dns_cache = self.dns_cache.write();
-            dns_cache.retain(|_, (_, timestamp)| {
-                now.duration_since(*timestamp) < self.dns_cache_ttl
-            });
+            dns_cache
+                .retain(|_, (_, timestamp)| now.duration_since(*timestamp) < self.dns_cache_ttl);
         }
 
         // Clean up preference weights (keep longer)
         {
             let mut weights = self.preference_weights.write();
             let weight_ttl = Duration::from_secs(86400); // 24 hours
-            weights.retain(|_, weight| {
-                now.duration_since(weight.last_updated) < weight_ttl
-            });
+            weights.retain(|_, weight| now.duration_since(weight.last_updated) < weight_ttl);
         }
     }
 
@@ -462,7 +456,9 @@ impl ProtocolDetector {
             // Simulate QUIC handshake attempt
             tokio::time::sleep(Duration::from_millis(50)).await;
             true
-        }).await.unwrap_or(false)
+        })
+        .await
+        .unwrap_or(false)
     }
 
     /// Detect HTTP/2 support using ALPN negotiation
@@ -473,13 +469,15 @@ impl ProtocolDetector {
             // Simulate TLS handshake with ALPN
             tokio::time::sleep(Duration::from_millis(20)).await;
             true
-        }).await.unwrap_or(false)
+        })
+        .await
+        .unwrap_or(false)
     }
 
     /// Comprehensive protocol detection
     pub async fn detect_all_protocols(host: &str, port: u16) -> HostCapabilities {
         let start = Instant::now();
-        
+
         let (http2_available, http3_available) = tokio::join!(
             Self::detect_http2_support(host, port),
             Self::detect_http3_support(host, port)
@@ -522,7 +520,7 @@ impl ProtocolDetector {
 }
 
 /// Global protocol negotiator instance for improved performance
-static GLOBAL_NEGOTIATOR: Lazy<EnhancedProtocolNegotiator> = 
+static GLOBAL_NEGOTIATOR: Lazy<EnhancedProtocolNegotiator> =
     Lazy::new(|| EnhancedProtocolNegotiator::new(ProtocolFallback::Http3ToHttp2ToHttp1));
 
 /// Get the global protocol negotiator instance
@@ -538,23 +536,28 @@ mod tests {
     async fn test_protocol_selection() {
         let negotiator = EnhancedProtocolNegotiator::new(ProtocolFallback::Http3ToHttp2ToHttp1);
         let config = ProtocolConfig::default();
-        
-        let protocol = negotiator.select_protocol("https://example.com", &config).await;
-        assert!(matches!(protocol, HttpVersion::Http1 | HttpVersion::Http2 | HttpVersion::Http3));
+
+        let protocol = negotiator
+            .select_protocol("https://example.com", &config)
+            .await;
+        assert!(matches!(
+            protocol,
+            HttpVersion::Http1 | HttpVersion::Http2 | HttpVersion::Http3
+        ));
     }
 
     #[tokio::test]
     async fn test_cache_functionality() {
         let negotiator = EnhancedProtocolNegotiator::new(ProtocolFallback::Http3ToHttp2ToHttp1);
-        
+
         // First access should be a cache miss
         let capabilities1 = negotiator.detect_protocol_capabilities("example.com").await;
         negotiator.update_cache("example.com", capabilities1.clone());
-        
+
         // Second access should be a cache hit
         let cached = negotiator.get_cached_capabilities("example.com");
         assert!(cached.is_some());
-        
+
         let stats = negotiator.get_cache_stats();
         assert_eq!(stats.cached_hosts, 1);
     }
@@ -562,7 +565,7 @@ mod tests {
     #[test]
     fn test_protocol_metrics_update() {
         let negotiator = EnhancedProtocolNegotiator::new(ProtocolFallback::Http3ToHttp2ToHttp1);
-        
+
         // Update some metrics
         negotiator.update_protocol_metrics(
             "example.com",
@@ -570,7 +573,7 @@ mod tests {
             true,
             Duration::from_millis(100),
         );
-        
+
         let capabilities = negotiator.get_cached_capabilities("example.com");
         if let Some(caps) = capabilities {
             assert_eq!(caps.http2_metrics.request_count, 1);
@@ -581,12 +584,12 @@ mod tests {
     #[test]
     fn test_protocol_score_calculation() {
         let negotiator = EnhancedProtocolNegotiator::new(ProtocolFallback::Http3ToHttp2ToHttp1);
-        
+
         let mut metrics = ProtocolMetrics::default();
         metrics.request_count = 10;
         metrics.success_count = 9;
         metrics.total_response_time = Duration::from_millis(1000);
-        
+
         let score = negotiator.calculate_protocol_score(&metrics, 1.5, 0.9);
         assert!(score > 0.0);
     }

@@ -1,10 +1,10 @@
-use pyo3::prelude::*;
-use pyo3::types::PyAny;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 use crate::async_client::AsyncHttpClient;
 use crate::config::{AuthConfig, RetryConfig, TimeoutConfig};
+use pyo3::prelude::*;
+use pyo3::types::PyAny;
 use reqwest::cookie::Jar;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 /// Async Session for managing HTTP requests with shared state
 #[pyclass]
@@ -73,11 +73,11 @@ impl AsyncSession {
     /// GET request with session state
     #[pyo3(signature = (url, params = None, headers = None))]
     pub fn get<'py>(
-        &self, 
-        py: Python<'py>, 
-        url: &str, 
-        params: Option<HashMap<String, String>>, 
-        headers: Option<HashMap<String, String>>
+        &self,
+        py: Python<'py>,
+        url: &str,
+        params: Option<HashMap<String, String>>,
+        headers: Option<HashMap<String, String>>,
     ) -> PyResult<&'py PyAny> {
         let client_guard = self.client.lock().unwrap();
         let client_py = Py::new(py, client_guard.clone())?;
@@ -92,13 +92,13 @@ impl AsyncSession {
     /// POST request with session state
     #[pyo3(signature = (url, json = None, data = None, files = None, headers = None))]
     pub fn post<'py>(
-        &self, 
-        py: Python<'py>, 
-        url: &str, 
-        json: Option<&PyAny>, 
+        &self,
+        py: Python<'py>,
+        url: &str,
+        json: Option<&PyAny>,
         data: Option<HashMap<String, String>>,
         files: Option<HashMap<String, Vec<u8>>>,
-        headers: Option<HashMap<String, String>>
+        headers: Option<HashMap<String, String>>,
     ) -> PyResult<&'py PyAny> {
         let client_guard = self.client.lock().unwrap();
         let client_py = Py::new(py, client_guard.clone())?;
@@ -113,13 +113,13 @@ impl AsyncSession {
     /// PUT request with session state
     #[pyo3(signature = (url, json = None, data = None, headers = None, files = None))]
     pub fn put<'py>(
-        &self, 
-        py: Python<'py>, 
-        url: &str, 
-        json: Option<&PyAny>, 
+        &self,
+        py: Python<'py>,
+        url: &str,
+        json: Option<&PyAny>,
         data: Option<HashMap<String, String>>,
         headers: Option<HashMap<String, String>>,
-        files: Option<HashMap<String, Vec<u8>>>
+        files: Option<HashMap<String, Vec<u8>>>,
     ) -> PyResult<&'py PyAny> {
         let client_guard = self.client.lock().unwrap();
         let client_py = Py::new(py, client_guard.clone())?;
@@ -134,10 +134,10 @@ impl AsyncSession {
     /// DELETE request with session state
     #[pyo3(signature = (url, headers = None))]
     pub fn delete<'py>(
-        &self, 
-        py: Python<'py>, 
-        url: &str, 
-        headers: Option<HashMap<String, String>>
+        &self,
+        py: Python<'py>,
+        url: &str,
+        headers: Option<HashMap<String, String>>,
     ) -> PyResult<&'py PyAny> {
         let client_guard = self.client.lock().unwrap();
         let client_py = Py::new(py, client_guard.clone())?;
@@ -152,13 +152,13 @@ impl AsyncSession {
     /// PATCH request with session state
     #[pyo3(signature = (url, json = None, data = None, files = None, headers = None))]
     pub fn patch<'py>(
-        &self, 
-        py: Python<'py>, 
-        url: &str, 
-        json: Option<&PyAny>, 
+        &self,
+        py: Python<'py>,
+        url: &str,
+        json: Option<&PyAny>,
         data: Option<HashMap<String, String>>,
         files: Option<HashMap<String, Vec<u8>>>,
-        headers: Option<HashMap<String, String>>
+        headers: Option<HashMap<String, String>>,
     ) -> PyResult<&'py PyAny> {
         let client_guard = self.client.lock().unwrap();
         let client_py = Py::new(py, client_guard.clone())?;
@@ -173,10 +173,10 @@ impl AsyncSession {
     /// HEAD request with session state
     #[pyo3(signature = (url, headers = None))]
     pub fn head<'py>(
-        &self, 
-        py: Python<'py>, 
-        url: &str, 
-        headers: Option<HashMap<String, String>>
+        &self,
+        py: Python<'py>,
+        url: &str,
+        headers: Option<HashMap<String, String>>,
     ) -> PyResult<&'py PyAny> {
         let client_guard = self.client.lock().unwrap();
         let client_py = Py::new(py, client_guard.clone())?;
@@ -191,10 +191,10 @@ impl AsyncSession {
     /// OPTIONS request with session state
     #[pyo3(signature = (url, headers = None))]
     pub fn options<'py>(
-        &self, 
-        py: Python<'py>, 
-        url: &str, 
-        headers: Option<HashMap<String, String>>
+        &self,
+        py: Python<'py>,
+        url: &str,
+        headers: Option<HashMap<String, String>>,
     ) -> PyResult<&'py PyAny> {
         let client_guard = self.client.lock().unwrap();
         let client_py = Py::new(py, client_guard.clone())?;
@@ -252,7 +252,7 @@ impl AsyncSession {
         }
         Ok(())
     }
-    
+
     /// Set the session's retry config (alias for compatibility)
     pub fn set_retry_config(&mut self, retry_config: RetryConfig) {
         let _ = self.set_retry(retry_config);
@@ -269,7 +269,7 @@ impl AsyncSession {
     pub fn remove_session_data(&mut self, key: &str) -> Option<String> {
         self.session_data.remove(key)
     }
-    
+
     /// Store session data (alias for compatibility)
     pub fn set_data(&mut self, key: String, value: String) {
         self.set_session_data(key, value);
@@ -291,7 +291,6 @@ impl AsyncSession {
     pub fn headers(&self) -> HashMap<String, String> {
         self.session_headers.clone()
     }
-
 
     /// Clear all cookies
     pub fn clear_cookies(&mut self) {
@@ -327,8 +326,8 @@ impl AsyncSession {
 
     /// Get cookie (simplified implementation)
     pub fn get_cookie(&self, name: &str) -> Option<String> {
-        // This is a simplified implementation since reqwest::Jar doesn't provide 
-        // easy access to individual cookies. In practice, cookies are handled 
+        // This is a simplified implementation since reqwest::Jar doesn't provide
+        // easy access to individual cookies. In practice, cookies are handled
         // automatically by the HTTP client.
         // For now, return None as cookies are managed internally by reqwest
         None
@@ -345,7 +344,12 @@ impl AsyncSession {
     }
 
     /// Context manager exit - return a synchronous result
-    pub fn __aexit__(&self, _exc_type: Option<&PyAny>, _exc_value: Option<&PyAny>, _traceback: Option<&PyAny>) -> PyResult<bool> {
+    pub fn __aexit__(
+        &self,
+        _exc_type: Option<&PyAny>,
+        _exc_value: Option<&PyAny>,
+        _traceback: Option<&PyAny>,
+    ) -> PyResult<bool> {
         self.close();
         Ok(false) // Don't suppress exceptions
     }
@@ -357,12 +361,12 @@ impl AsyncSession {
             if let Some(ref auth) = self.auth_config {
                 client.set_auth(auth.clone())?;
             }
-            
+
             // Apply retry config if set
             if let Some(ref retry) = self.retry_config {
                 client.set_retry_config(retry.clone());
             }
-            
+
             // Apply session headers
             for (key, value) in self.session_headers.iter() {
                 client.set_header(key.clone(), value.clone());

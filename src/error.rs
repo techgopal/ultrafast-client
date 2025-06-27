@@ -8,37 +8,37 @@ use thiserror::Error;
 pub enum UltraFastError {
     #[error("HTTP request failed: {0}")]
     HttpError(String),
-    
+
     #[error("HTTP/3 error: {0}")]
     Http3Error(String),
-    
+
     #[error("Protocol negotiation failed: {0}")]
     ProtocolError(String),
-    
+
     #[error("Connection error: {0}")]
     ConnectionError(String),
-    
+
     #[error("Timeout error: {0}")]
     TimeoutError(String),
-    
+
     #[error("Authentication error: {0}")]
     AuthError(String),
-    
+
     #[error("Configuration error: {0}")]
     ConfigError(String),
-    
+
     #[error("Serialization error: {0}")]
     SerializationError(String),
-    
+
     #[error("I/O error: {0}")]
     IoError(String),
-    
+
     #[error("Generic client error: {0}")]
     ClientError(String),
-    
+
     #[error("Rate limit exceeded: {0}")]
     RateLimitError(String),
-    
+
     #[error("Rate limit queue full: {0}")]
     RateLimitQueueFullError(String),
 }
@@ -46,15 +46,11 @@ pub enum UltraFastError {
 impl From<UltraFastError> for PyErr {
     fn from(err: UltraFastError) -> PyErr {
         match err {
-            UltraFastError::TimeoutError(msg) => {
-                pyo3::exceptions::PyTimeoutError::new_err(msg)
-            }
+            UltraFastError::TimeoutError(msg) => pyo3::exceptions::PyTimeoutError::new_err(msg),
             UltraFastError::ConnectionError(msg) | UltraFastError::Http3Error(msg) => {
                 pyo3::exceptions::PyConnectionError::new_err(msg)
             }
-            UltraFastError::AuthError(msg) => {
-                pyo3::exceptions::PyPermissionError::new_err(msg)
-            }
+            UltraFastError::AuthError(msg) => pyo3::exceptions::PyPermissionError::new_err(msg),
             UltraFastError::ConfigError(msg) | UltraFastError::ProtocolError(msg) => {
                 pyo3::exceptions::PyValueError::new_err(msg)
             }
@@ -64,9 +60,7 @@ impl From<UltraFastError> for PyErr {
             UltraFastError::RateLimitError(msg) | UltraFastError::RateLimitQueueFullError(msg) => {
                 pyo3::exceptions::PyRuntimeError::new_err(format!("Rate limit error: {}", msg))
             }
-            _ => {
-                pyo3::exceptions::PyRuntimeError::new_err(err.to_string())
-            }
+            _ => pyo3::exceptions::PyRuntimeError::new_err(err.to_string()),
         }
     }
 }

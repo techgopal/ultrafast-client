@@ -1,11 +1,11 @@
+use ahash::AHashMap;
+use crossbeam::queue::SegQueue;
+use parking_lot::RwLock; // Mutex currently unused
+use pyo3::PyResult;
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use parking_lot::RwLock; // Mutex currently unused
 use tokio::sync::Semaphore;
-use ahash::AHashMap;
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use crossbeam::queue::SegQueue;
-use pyo3::PyResult;
 
 /// High-performance connection pool with lock-free operations where possible
 pub struct FastConnectionPool {
@@ -79,7 +79,7 @@ impl FastConnectionPool {
     /// Try to acquire a connection permit without blocking
     pub async fn try_acquire_connection(&self) -> Option<ConnectionPermit> {
         match Arc::clone(&self.connection_semaphore).try_acquire_owned() {
-            Ok(permit) => Some(ConnectionPermit { 
+            Ok(permit) => Some(ConnectionPermit {
                 permit: Some(permit),
                 pool: Arc::clone(&self.pool_state),
             }),
@@ -89,8 +89,15 @@ impl FastConnectionPool {
 
     /// Acquire a connection permit (may wait)
     pub(crate) async fn acquire_connection(&self) -> PyResult<ConnectionPermit> {
-        let permit = Arc::clone(&self.connection_semaphore).acquire_owned().await
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire connection permit: {}", e)))?;
+        let permit = Arc::clone(&self.connection_semaphore)
+            .acquire_owned()
+            .await
+            .map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "Failed to acquire connection permit: {}",
+                    e
+                ))
+            })?;
         Ok(ConnectionPermit {
             permit: Some(permit),
             pool: Arc::clone(&self.pool_state),
@@ -105,13 +112,13 @@ impl FastConnectionPool {
         // Update internal metrics for connection efficiency
         // In a production implementation, this could update metrics/telemetry
     }
-    
+
     /// Get pool statistics without acquiring locks for long
     pub fn get_stats(&self) -> PoolStats {
         let state = self.pool_state.read();
         let total_active = self.active_connections.load(Ordering::Relaxed);
         let total_idle = self.idle_queue.len();
-        
+
         PoolStats {
             active_connections: total_active,
             idle_connections: total_idle,
@@ -126,7 +133,7 @@ impl FastConnectionPool {
     pub fn cleanup_expired(&self) {
         let now = Instant::now();
         let mut expired_count = 0;
-        
+
         // Process items from the queue
         while let Some(conn) = self.idle_queue.pop() {
             if now.duration_since(conn.available_since) < self.max_idle_time {
@@ -137,7 +144,7 @@ impl FastConnectionPool {
                 expired_count += 1;
             }
         }
-        
+
         if expired_count > 0 {
             // Update host stats
             let mut state = self.pool_state.write();
@@ -156,7 +163,8 @@ impl FastConnectionPool {
             if idle_conn.info.host == host {
                 let now = Instant::now();
                 if now.duration_since(idle_conn.available_since) < self.max_idle_time {
-                    self.total_connections_reused.fetch_add(1, Ordering::Relaxed);
+                    self.total_connections_reused
+                        .fetch_add(1, Ordering::Relaxed);
                     return Some(idle_conn.info);
                 }
             } else {
@@ -198,7 +206,7 @@ impl ConnectionPermit {
             protocol_version: "HTTP/1.1".to_string(),
             is_http3: false,
         };
-        
+
         state.active_connections.insert(host.clone(), info);
         state.host_stats.entry(host).or_default().active_connections += 1;
     }
@@ -209,13 +217,12 @@ impl ConnectionPermit {
             conn.last_used = Instant::now();
             conn.request_count += 1;
         }
-        
+
         if let Some(stats) = state.host_stats.get_mut(host) {
             // Update running average
             let new_time = response_time.as_secs_f64();
-            stats.average_response_time = 
-                (stats.average_response_time + new_time) / 2.0;
-                
+            stats.average_response_time = (stats.average_response_time + new_time) / 2.0;
+
             // Update success rate
             stats.success_rate = (stats.success_rate * 0.9) + (1.0 * 0.1);
         }
@@ -298,7 +305,7 @@ impl ConnectionMultiplexer {
         let mut total_active = 0;
         let mut total_idle = 0;
         let mut total_capacity = 0;
-        
+
         for pool in pools.values() {
             let stats = pool.get_stats();
             total_active += stats.active_connections;
@@ -338,17 +345,17 @@ mod tests {
     #[tokio::test]
     async fn test_connection_pool_limits() {
         let pool = FastConnectionPool::new(2, Duration::from_secs(60));
-        
+
         // Acquire two connections
         let _conn1 = pool.acquire_connection().await;
         let _conn2 = pool.acquire_connection().await;
-        
+
         // Third should not be immediately available
         assert!(pool.try_acquire_connection().await.is_none());
-        
+
         // Drop one connection
         drop(_conn1);
-        
+
         // Should be able to acquire again
         assert!(pool.try_acquire_connection().await.is_some());
     }
@@ -356,14 +363,14 @@ mod tests {
     #[tokio::test]
     async fn test_multiplexer() {
         let multiplexer = ConnectionMultiplexer::new(10, Duration::from_secs(60));
-        
+
         let pool1 = multiplexer.get_pool("example.com");
         let pool2 = multiplexer.get_pool("api.example.com");
         let pool1_again = multiplexer.get_pool("example.com");
-        
+
         // Should return the same pool for the same host
         assert!(Arc::ptr_eq(&pool1, &pool1_again));
-        
+
         let stats = multiplexer.get_aggregate_stats();
         assert_eq!(stats.host_count, 2);
     }
@@ -371,16 +378,19 @@ mod tests {
     #[tokio::test]
     async fn test_connection_lifecycle() {
         let pool = FastConnectionPool::new(5, Duration::from_secs(1));
-        
+
         {
-            let permit = pool.acquire_connection().await.expect("Failed to acquire permit");
+            let permit = pool
+                .acquire_connection()
+                .await
+                .expect("Failed to acquire permit");
             permit.mark_active("test.com".to_string());
             permit.mark_used("test.com", Duration::from_millis(100));
-            
+
             let stats = pool.get_stats();
             assert_eq!(stats.active_connections, 1);
         }
-        
+
         // Connection should be cleaned up after drop
         let stats = pool.get_stats();
         assert_eq!(stats.active_connections, 0);

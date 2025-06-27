@@ -1,10 +1,10 @@
-use pyo3::prelude::*;
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
 use crate::client::HttpClient;
 use crate::config::{AuthConfig, RetryConfig, TimeoutConfig};
+use pyo3::prelude::*;
 use reqwest::cookie::Jar;
+use std::collections::HashMap;
 use std::sync::Mutex;
+use std::sync::{Arc, RwLock};
 
 /// Advanced session management with cookie handling and persistent configuration
 #[pyclass]
@@ -57,7 +57,7 @@ impl Session {
             None, // protocol_config
             None, // rate_limit_config
         )?;
-        
+
         Ok(Session {
             client: Arc::new(Mutex::new(client)),
             cookies: Arc::new(Jar::default()),
@@ -70,195 +70,319 @@ impl Session {
             session_data: Arc::new(RwLock::new(HashMap::new())),
         })
     }
-    
+
     /// Perform GET request with session
     #[pyo3(signature = (url, params = None, headers = None))]
-    pub fn get<'py>(&self, py: Python<'py>, url: &str, params: Option<HashMap<String, String>>, headers: Option<HashMap<String, String>>) -> PyResult<&'py PyAny> {
-        let mut client = self.client.lock()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire lock: {}", e)))?;
+    pub fn get<'py>(
+        &self,
+        py: Python<'py>,
+        url: &str,
+        params: Option<HashMap<String, String>>,
+        headers: Option<HashMap<String, String>>,
+    ) -> PyResult<&'py PyAny> {
+        let mut client = self.client.lock().map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire lock: {}", e))
+        })?;
         let response = client.get(url, params, headers)?;
         Ok(response.into_py(py).into_ref(py))
     }
-    
+
     /// Perform POST request with session
     #[pyo3(signature = (url, json = None, data = None, files = None, headers = None))]
-    pub fn post<'py>(&self, py: Python<'py>, url: &str, json: Option<&PyAny>, data: Option<HashMap<String, String>>, files: Option<HashMap<String, String>>, headers: Option<HashMap<String, String>>) -> PyResult<&'py PyAny> {
-        let mut client = self.client.lock()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire lock: {}", e)))?;
+    pub fn post<'py>(
+        &self,
+        py: Python<'py>,
+        url: &str,
+        json: Option<&PyAny>,
+        data: Option<HashMap<String, String>>,
+        files: Option<HashMap<String, String>>,
+        headers: Option<HashMap<String, String>>,
+    ) -> PyResult<&'py PyAny> {
+        let mut client = self.client.lock().map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire lock: {}", e))
+        })?;
         // Convert files to the expected format
         let files_converted = files.map(|f| {
-            f.into_iter().map(|(k, v)| (k, v.into_bytes())).collect::<HashMap<String, Vec<u8>>>()
+            f.into_iter()
+                .map(|(k, v)| (k, v.into_bytes()))
+                .collect::<HashMap<String, Vec<u8>>>()
         });
         let response = client.post(url, json, data, files_converted, headers)?;
         Ok(response.into_py(py).into_ref(py))
     }
-    
+
     /// Perform PUT request with session
     #[pyo3(signature = (url, json = None, data = None, files = None, headers = None))]
-    pub fn put<'py>(&self, py: Python<'py>, url: &str, json: Option<&PyAny>, data: Option<HashMap<String, String>>, files: Option<HashMap<String, String>>, headers: Option<HashMap<String, String>>) -> PyResult<&'py PyAny> {
-        let mut client = self.client.lock()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire lock: {}", e)))?;
+    pub fn put<'py>(
+        &self,
+        py: Python<'py>,
+        url: &str,
+        json: Option<&PyAny>,
+        data: Option<HashMap<String, String>>,
+        files: Option<HashMap<String, String>>,
+        headers: Option<HashMap<String, String>>,
+    ) -> PyResult<&'py PyAny> {
+        let mut client = self.client.lock().map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire lock: {}", e))
+        })?;
         // Convert files to the expected format
         let files_converted = files.map(|f| {
-            f.into_iter().map(|(k, v)| (k, v.into_bytes())).collect::<HashMap<String, Vec<u8>>>()
+            f.into_iter()
+                .map(|(k, v)| (k, v.into_bytes()))
+                .collect::<HashMap<String, Vec<u8>>>()
         });
         let response = client.put(url, json, data, files_converted, headers)?;
         Ok(response.into_py(py).into_ref(py))
     }
-    
+
     /// Perform DELETE request with session
-    pub fn delete<'py>(&self, py: Python<'py>, url: &str, headers: Option<HashMap<String, String>>) -> PyResult<&'py PyAny> {
-        let mut client = self.client.lock()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire lock: {}", e)))?;
+    pub fn delete<'py>(
+        &self,
+        py: Python<'py>,
+        url: &str,
+        headers: Option<HashMap<String, String>>,
+    ) -> PyResult<&'py PyAny> {
+        let mut client = self.client.lock().map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire lock: {}", e))
+        })?;
         let response = client.delete(url, headers)?;
         Ok(response.into_py(py).into_ref(py))
     }
-    
+
     /// Perform PATCH request with session
     #[pyo3(signature = (url, json = None, data = None, files = None, headers = None))]
-    pub fn patch<'py>(&self, py: Python<'py>, url: &str, json: Option<&PyAny>, data: Option<HashMap<String, String>>, files: Option<HashMap<String, String>>, headers: Option<HashMap<String, String>>) -> PyResult<&'py PyAny> {
-        let mut client = self.client.lock()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire lock: {}", e)))?;
+    pub fn patch<'py>(
+        &self,
+        py: Python<'py>,
+        url: &str,
+        json: Option<&PyAny>,
+        data: Option<HashMap<String, String>>,
+        files: Option<HashMap<String, String>>,
+        headers: Option<HashMap<String, String>>,
+    ) -> PyResult<&'py PyAny> {
+        let mut client = self.client.lock().map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire lock: {}", e))
+        })?;
         // Convert files to the expected format
         let files_converted = files.map(|f| {
-            f.into_iter().map(|(k, v)| (k, v.into_bytes())).collect::<HashMap<String, Vec<u8>>>()
+            f.into_iter()
+                .map(|(k, v)| (k, v.into_bytes()))
+                .collect::<HashMap<String, Vec<u8>>>()
         });
         let response = client.patch(url, json, data, files_converted, headers)?;
         Ok(response.into_py(py).into_ref(py))
     }
-    
+
     /// Perform HEAD request with session
-    pub fn head<'py>(&self, py: Python<'py>, url: &str, headers: Option<HashMap<String, String>>) -> PyResult<&'py PyAny> {
-        let mut client = self.client.lock()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire lock: {}", e)))?;
+    pub fn head<'py>(
+        &self,
+        py: Python<'py>,
+        url: &str,
+        headers: Option<HashMap<String, String>>,
+    ) -> PyResult<&'py PyAny> {
+        let mut client = self.client.lock().map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire lock: {}", e))
+        })?;
         let response = client.head(url, headers)?;
         Ok(response.into_py(py).into_ref(py))
     }
-    
+
     /// Perform OPTIONS request with session
-    pub fn options<'py>(&self, py: Python<'py>, url: &str, headers: Option<HashMap<String, String>>) -> PyResult<&'py PyAny> {
-        let mut client = self.client.lock()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire lock: {}", e)))?;
+    pub fn options<'py>(
+        &self,
+        py: Python<'py>,
+        url: &str,
+        headers: Option<HashMap<String, String>>,
+    ) -> PyResult<&'py PyAny> {
+        let mut client = self.client.lock().map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire lock: {}", e))
+        })?;
         let response = client.options(url, headers)?;
         Ok(response.into_py(py).into_ref(py))
     }
-    
+
     /// Set a session header
     pub fn set_header(&mut self, key: String, value: String) -> PyResult<()> {
-        self.default_headers.write()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire write lock: {}", e)))?
+        self.default_headers
+            .write()
+            .map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "Failed to acquire write lock: {}",
+                    e
+                ))
+            })?
             .insert(key, value);
         Ok(())
     }
-    
+
     /// Remove a session header
     pub fn remove_header(&mut self, key: &str) -> Option<String> {
-        self.default_headers.write()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire write lock: {}", e)))
+        self.default_headers
+            .write()
+            .map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "Failed to acquire write lock: {}",
+                    e
+                ))
+            })
             .map(|mut guard| guard.remove(key))
             .unwrap_or(None)
     }
-    
+
     /// Get session headers as property
     #[getter]
     pub fn headers(&self) -> HashMap<String, String> {
-        self.default_headers.read()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire read lock: {}", e)))
+        self.default_headers
+            .read()
+            .map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "Failed to acquire read lock: {}",
+                    e
+                ))
+            })
             .map(|guard| guard.clone())
             .unwrap_or_default()
     }
-    
+
     /// Get authentication config as property
     #[getter]
     pub fn auth_config(&self) -> Option<AuthConfig> {
-        self.auth_config.read()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire read lock: {}", e)))
+        self.auth_config
+            .read()
+            .map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "Failed to acquire read lock: {}",
+                    e
+                ))
+            })
             .map(|guard| guard.clone())
             .unwrap_or_default()
     }
-    
+
     /// Get timeout config as property
     #[getter]
     pub fn timeout_config(&self) -> Option<TimeoutConfig> {
-        self.timeout_config.read()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire read lock: {}", e)))
+        self.timeout_config
+            .read()
+            .map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "Failed to acquire read lock: {}",
+                    e
+                ))
+            })
             .map(|guard| guard.clone())
             .unwrap_or_default()
     }
-    
+
     /// Set authentication for the session
     pub fn set_auth(&mut self, auth_config: AuthConfig) -> PyResult<()> {
-        *self.auth_config.write()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire write lock: {}", e)))? = Some(auth_config);
+        *self.auth_config.write().map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!(
+                "Failed to acquire write lock: {}",
+                e
+            ))
+        })? = Some(auth_config);
         Ok(())
     }
-    
+
     /// Set authentication config (alias for compatibility)
     pub fn set_auth_config(&mut self, auth_config: AuthConfig) -> PyResult<()> {
         self.set_auth(auth_config)
     }
-    
+
     /// Clear authentication
     pub fn clear_auth(&mut self) -> PyResult<()> {
-        *self.auth_config.write()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire write lock: {}", e)))? = None;
+        *self.auth_config.write().map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!(
+                "Failed to acquire write lock: {}",
+                e
+            ))
+        })? = None;
         Ok(())
     }
-    
+
     /// Set retry configuration
     pub fn set_retry(&mut self, retry_config: RetryConfig) -> PyResult<()> {
-        *self.retry_config.write()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire write lock: {}", e)))? = Some(retry_config);
+        *self.retry_config.write().map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!(
+                "Failed to acquire write lock: {}",
+                e
+            ))
+        })? = Some(retry_config);
         Ok(())
     }
-    
+
     /// Store session data
     pub fn set_session_data(&mut self, key: String, value: String) -> PyResult<()> {
-        self.session_data.write()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire write lock: {}", e)))?
+        self.session_data
+            .write()
+            .map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "Failed to acquire write lock: {}",
+                    e
+                ))
+            })?
             .insert(key, value);
         Ok(())
     }
-    
+
     /// Get session data
     pub fn get_session_data(&self, key: &str) -> Option<String> {
-        self.session_data.read()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire read lock: {}", e)))
+        self.session_data
+            .read()
+            .map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "Failed to acquire read lock: {}",
+                    e
+                ))
+            })
             .map(|guard| guard.get(key).cloned())
             .unwrap_or_default()
     }
-    
+
     /// Remove session data
     pub fn remove_session_data(&mut self, key: &str) -> PyResult<()> {
-        self.session_data.write()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire write lock: {}", e)))?
+        self.session_data
+            .write()
+            .map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "Failed to acquire write lock: {}",
+                    e
+                ))
+            })?
             .remove(key);
         Ok(())
     }
-    
+
     /// Store data (alias for set_session_data)
     pub fn set_data(&mut self, key: String, value: String) -> PyResult<()> {
         self.set_session_data(key, value)
     }
-    
+
     /// Get data (alias for get_session_data)
     pub fn get_data(&self, key: &str) -> Option<String> {
         self.get_session_data(key)
     }
-    
+
     /// Remove data (alias for remove_session_data)
     pub fn remove_data(&mut self, key: &str) -> PyResult<()> {
         self.remove_session_data(key)
     }
-    
+
     /// Clear all session data
     pub fn clear_data(&mut self) -> PyResult<()> {
-        self.session_data.write()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire write lock: {}", e)))?
+        self.session_data
+            .write()
+            .map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "Failed to acquire write lock: {}",
+                    e
+                ))
+            })?
             .clear();
         Ok(())
     }
-    
+
     /// Clear all cookies
     pub fn clear_cookies(&self) {
         // Cookie clearing would require access to the internal cookie store
@@ -269,8 +393,9 @@ impl Session {
     pub fn set_cookie(&self, name: &str, value: &str) -> PyResult<()> {
         // Create a simple cookie string for the cookie jar
         let cookie_str = format!("{}={}", name, value);
-        let base_url_guard = self.base_url.read()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire read lock: {}", e)))?;
+        let base_url_guard = self.base_url.read().map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to acquire read lock: {}", e))
+        })?;
         let url = base_url_guard.as_deref().unwrap_or("http://localhost");
         if let Ok(parsed_url) = url.parse() {
             self.cookies.add_cookie_str(&cookie_str, &parsed_url);
@@ -280,57 +405,62 @@ impl Session {
 
     /// Get cookie (simplified implementation)
     pub fn get_cookie(&self, name: &str) -> Option<String> {
-        // This is a simplified implementation since reqwest::Jar doesn't provide 
-        // easy access to individual cookies. In practice, cookies are handled 
+        // This is a simplified implementation since reqwest::Jar doesn't provide
+        // easy access to individual cookies. In practice, cookies are handled
         // automatically by the HTTP client.
         // For now, return None as cookies are managed internally by reqwest
         None
     }
-    
+
     /// Check if cookies are persisted
     #[getter]
     pub fn persist_cookies(&self) -> bool {
         self.persist_cookies
     }
-    
+
     /// Set base URL
     pub fn set_base_url(&self, base_url: Option<String>) {
         *self.base_url.write().unwrap() = base_url;
     }
-    
+
     /// Get base URL
     #[getter]
     pub fn base_url(&self) -> Option<String> {
         self.base_url.read().unwrap().clone()
     }
-    
+
     /// Apply session configuration to client
     fn apply_session_config(&self, client: &mut HttpClient) -> PyResult<()> {
         // Apply auth if set
         if let Some(ref auth) = *self.auth_config.read().unwrap() {
             client.set_auth(auth.clone())?;
         }
-        
+
         // Apply retry config if set
         if let Some(ref retry) = *self.retry_config.read().unwrap() {
             client.set_retry_config(retry.clone());
         }
-        
+
         // Apply session headers
         let headers = self.default_headers.read().unwrap();
         for (key, value) in headers.iter() {
             let _ = client.set_header(key.clone(), value.clone());
         }
-        
+
         Ok(())
     }
-    
+
     /// Context manager support
     fn __enter__(slf: PyRef<Self>) -> PyRef<Self> {
         slf
     }
-    
-    fn __exit__(&mut self, _exc_type: Option<&PyAny>, _exc_value: Option<&PyAny>, _traceback: Option<&PyAny>) {
+
+    fn __exit__(
+        &mut self,
+        _exc_type: Option<&PyAny>,
+        _exc_value: Option<&PyAny>,
+        _traceback: Option<&PyAny>,
+    ) {
         // Cleanup if needed
     }
 }

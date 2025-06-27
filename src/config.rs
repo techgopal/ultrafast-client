@@ -1,8 +1,8 @@
-use pyo3::prelude::*;
-use std::collections::HashMap;
-use base64::{Engine as _, engine::general_purpose};
-use rand;
 use crate::error::UltraFastError;
+use base64::{engine::general_purpose, Engine as _};
+use pyo3::prelude::*;
+use rand;
+use std::collections::HashMap;
 
 /// Authentication type enumeration
 #[pyclass]
@@ -21,27 +21,39 @@ impl AuthType {
     /// Uppercase constants for backward compatibility
     #[classattr]
     #[allow(non_snake_case)]
-    fn BEARER() -> AuthType { AuthType::Bearer }
-    
+    fn BEARER() -> AuthType {
+        AuthType::Bearer
+    }
+
     #[classattr]
     #[allow(non_snake_case)]
-    fn BASIC() -> AuthType { AuthType::Basic }
-    
+    fn BASIC() -> AuthType {
+        AuthType::Basic
+    }
+
     #[classattr]
     #[allow(non_snake_case)]
-    fn API_KEY_HEADER() -> AuthType { AuthType::ApiKeyHeader }
-    
+    fn API_KEY_HEADER() -> AuthType {
+        AuthType::ApiKeyHeader
+    }
+
     #[classattr]
     #[allow(non_snake_case)]
-    fn API_KEY_QUERY() -> AuthType { AuthType::ApiKeyQuery }
-    
+    fn API_KEY_QUERY() -> AuthType {
+        AuthType::ApiKeyQuery
+    }
+
     #[classattr]
     #[allow(non_snake_case)]
-    fn OAUTH2() -> AuthType { AuthType::OAuth2 }
-    
+    fn OAUTH2() -> AuthType {
+        AuthType::OAuth2
+    }
+
     #[classattr]
     #[allow(non_snake_case)]
-    fn CUSTOM() -> AuthType { AuthType::Custom }
+    fn CUSTOM() -> AuthType {
+        AuthType::Custom
+    }
 }
 
 /// Authentication configuration
@@ -64,68 +76,68 @@ impl AuthConfig {
             credentials: credentials.unwrap_or_default(),
         }
     }
-    
+
     /// Create Bearer token authentication
     #[staticmethod]
     pub fn bearer(token: String) -> Self {
         let mut credentials = HashMap::new();
         credentials.insert("token".to_string(), token);
-        
+
         AuthConfig {
             auth_type: AuthType::Bearer,
             credentials,
         }
     }
-    
+
     /// Create Basic authentication
     #[staticmethod]
     pub fn basic(username: String, password: String) -> Self {
         let mut credentials = HashMap::new();
-        
+
         // Clone the values before moving them
         let username_clone = username.clone();
         let password_clone = password.clone();
-        
+
         credentials.insert("username".to_string(), username);
         credentials.insert("password".to_string(), password);
-        
+
         // Pre-compute the base64 encoded credentials
         let auth_string = format!("{}:{}", username_clone, password_clone);
         let encoded = general_purpose::STANDARD.encode(auth_string.as_bytes());
         credentials.insert("encoded".to_string(), encoded);
-        
+
         AuthConfig {
             auth_type: AuthType::Basic,
             credentials,
         }
     }
-    
+
     /// Create API key authentication for headers
     #[staticmethod]
     pub fn api_key_header(key: String, header_name: String) -> Self {
         let mut credentials = HashMap::new();
         credentials.insert("key".to_string(), key);
         credentials.insert("header_name".to_string(), header_name);
-        
+
         AuthConfig {
             auth_type: AuthType::ApiKeyHeader,
             credentials,
         }
     }
-    
+
     /// Create API key authentication for query parameters
     #[staticmethod]
     pub fn api_key_query(key: String, param_name: String) -> Self {
         let mut credentials = HashMap::new();
         credentials.insert("key".to_string(), key);
         credentials.insert("param_name".to_string(), param_name);
-        
+
         AuthConfig {
             auth_type: AuthType::ApiKeyQuery,
             credentials,
         }
     }
-    
+
     /// Create OAuth2 authentication
     #[staticmethod]
     #[pyo3(signature = (client_id, token_url, client_secret=None, scopes=None))]
@@ -138,80 +150,98 @@ impl AuthConfig {
         let mut credentials = HashMap::new();
         credentials.insert("client_id".to_string(), client_id);
         credentials.insert("token_url".to_string(), token_url);
-        
+
         if let Some(secret) = client_secret {
             credentials.insert("client_secret".to_string(), secret);
         }
-        
+
         if let Some(scopes) = scopes {
             credentials.insert("scopes".to_string(), scopes.join(" "));
         }
-        
+
         AuthConfig {
             auth_type: AuthType::OAuth2,
             credentials,
         }
     }
-    
+
     /// Create custom authentication
     #[staticmethod]
     pub fn custom(auth_type: String, credentials: HashMap<String, String>) -> Self {
         let mut creds = credentials;
         creds.insert("custom_type".to_string(), auth_type);
-        
+
         AuthConfig {
             auth_type: AuthType::Custom,
             credentials: creds,
         }
     }
-    
+
     /// Get a credential value
     pub fn get_credential(&self, key: &str) -> Option<String> {
         self.credentials.get(key).cloned()
     }
-    
+
     /// Check if authentication is OAuth2
     pub fn is_oauth2(&self) -> bool {
         matches!(self.auth_type, AuthType::OAuth2)
     }
-    
+
     /// Validate the authentication configuration
     pub fn validate(&self) -> PyResult<()> {
         match self.auth_type {
             AuthType::Bearer => {
                 if self.get_credential("token").is_none() {
-                    return Err(pyo3::exceptions::PyValueError::new_err("Bearer token not set"));
+                    return Err(pyo3::exceptions::PyValueError::new_err(
+                        "Bearer token not set",
+                    ));
                 }
             }
             AuthType::Basic => {
-                if self.get_credential("username").is_none() || self.get_credential("password").is_none() {
-                    return Err(pyo3::exceptions::PyValueError::new_err("Basic auth requires username and password"));
+                if self.get_credential("username").is_none()
+                    || self.get_credential("password").is_none()
+                {
+                    return Err(pyo3::exceptions::PyValueError::new_err(
+                        "Basic auth requires username and password",
+                    ));
                 }
             }
             AuthType::ApiKeyHeader => {
-                if self.get_credential("key").is_none() || self.get_credential("header_name").is_none() {
-                    return Err(pyo3::exceptions::PyValueError::new_err("API key header auth requires key and header_name"));
+                if self.get_credential("key").is_none()
+                    || self.get_credential("header_name").is_none()
+                {
+                    return Err(pyo3::exceptions::PyValueError::new_err(
+                        "API key header auth requires key and header_name",
+                    ));
                 }
             }
             AuthType::ApiKeyQuery => {
-                if self.get_credential("key").is_none() || self.get_credential("param_name").is_none() {
-                    return Err(pyo3::exceptions::PyValueError::new_err("API key query auth requires key and param_name"));
+                if self.get_credential("key").is_none()
+                    || self.get_credential("param_name").is_none()
+                {
+                    return Err(pyo3::exceptions::PyValueError::new_err(
+                        "API key query auth requires key and param_name",
+                    ));
                 }
             }
             AuthType::OAuth2 => {
-                if self.get_credential("client_id").is_none() || self.get_credential("token_url").is_none() {
-                    return Err(pyo3::exceptions::PyValueError::new_err("OAuth2 requires client_id and token_url"));
+                if self.get_credential("client_id").is_none()
+                    || self.get_credential("token_url").is_none()
+                {
+                    return Err(pyo3::exceptions::PyValueError::new_err(
+                        "OAuth2 requires client_id and token_url",
+                    ));
                 }
             }
             AuthType::Custom => {}
         }
         Ok(())
     }
-    
+
     /// Generate headers for the authentication
     pub fn generate_headers(&self) -> PyResult<HashMap<String, String>> {
         let mut headers = HashMap::new();
-        
+
         match self.auth_type {
             AuthType::Bearer => {
                 if let Some(token) = self.get_credential("token") {
@@ -226,7 +256,7 @@ impl AuthConfig {
             AuthType::ApiKeyHeader => {
                 if let (Some(key), Some(header_name)) = (
                     self.get_credential("key"),
-                    self.get_credential("header_name")
+                    self.get_credential("header_name"),
                 ) {
                     headers.insert(header_name, key);
                 }
@@ -241,7 +271,7 @@ impl AuthConfig {
                 // Custom auth - could be extended
             }
         }
-        
+
         Ok(headers)
     }
 }
@@ -252,8 +282,12 @@ impl AuthConfig {
         if self.auth_type != AuthType::OAuth2 {
             return Err("Not an OAuth2 auth configuration".to_string());
         }
-        let client_id = self.get_credential("client_id").ok_or_else(|| "Missing client_id in credentials".to_string())?;
-        let token_url = self.get_credential("token_url").ok_or_else(|| "Missing token_url in credentials".to_string())?;
+        let client_id = self
+            .get_credential("client_id")
+            .ok_or_else(|| "Missing client_id in credentials".to_string())?;
+        let token_url = self
+            .get_credential("token_url")
+            .ok_or_else(|| "Missing token_url in credentials".to_string())?;
         let client_secret = self.get_credential("client_secret");
         let scopes = self.get_credential("scopes");
 
@@ -277,7 +311,10 @@ impl AuthConfig {
             .map_err(|e| format!("Failed to send token request: {}", e))?;
 
         if !response.status().is_success() {
-            return Err(format!("Token request failed with status: {}", response.status()));
+            return Err(format!(
+                "Token request failed with status: {}",
+                response.status()
+            ));
         }
 
         #[derive(serde::Deserialize)]
@@ -301,7 +338,9 @@ impl AuthConfig {
 
         Ok(OAuth2Token {
             access_token: token_response.access_token,
-            token_type: token_response.token_type.unwrap_or_else(|| "Bearer".to_string()),
+            token_type: token_response
+                .token_type
+                .unwrap_or_else(|| "Bearer".to_string()),
             expires_in: token_response.expires_in,
             refresh_token: token_response.refresh_token,
             scope: token_response.scope,
@@ -317,9 +356,9 @@ pub struct RetryConfig {
     #[pyo3(get, set)]
     pub max_retries: u32,
     #[pyo3(get, set)]
-    pub initial_delay: f64,  // seconds
+    pub initial_delay: f64, // seconds
     #[pyo3(get, set)]
-    pub max_delay: f64,      // seconds
+    pub max_delay: f64, // seconds
     #[pyo3(get, set)]
     pub exponential_base: f64,
     #[pyo3(get, set)]
@@ -352,9 +391,9 @@ impl RetryConfig {
         jitter: bool,
     ) -> Self {
         let status_codes = retry_on_status_codes.unwrap_or_else(|| {
-            vec![408, 429, 500, 502, 503, 504]  // Common retryable status codes
+            vec![408, 429, 500, 502, 503, 504] // Common retryable status codes
         });
-        
+
         RetryConfig {
             max_retries,
             initial_delay,
@@ -365,7 +404,7 @@ impl RetryConfig {
             jitter,
         }
     }
-    
+
     /// Factory method for high-throughput scenarios with minimal delays
     #[staticmethod]
     pub fn for_high_throughput() -> Self {
@@ -374,12 +413,12 @@ impl RetryConfig {
             initial_delay: 0.1,
             max_delay: 5.0,
             exponential_base: 1.5,
-            retry_on_status_codes: vec![429, 503, 504],  // Rate limiting and server errors
+            retry_on_status_codes: vec![429, 503, 504], // Rate limiting and server errors
             retry_on_connection_errors: true,
             jitter: true,
         }
     }
-    
+
     /// Factory method for critical operations requiring robust retry logic
     #[staticmethod]
     pub fn for_critical_operations() -> Self {
@@ -393,7 +432,7 @@ impl RetryConfig {
             jitter: true,
         }
     }
-    
+
     /// Factory method for development/testing with fast retries
     #[staticmethod]
     pub fn for_development() -> Self {
@@ -404,15 +443,15 @@ impl RetryConfig {
             exponential_base: 2.0,
             retry_on_status_codes: vec![500, 502, 503, 504],
             retry_on_connection_errors: true,
-            jitter: false,  // No jitter for deterministic testing
+            jitter: false, // No jitter for deterministic testing
         }
     }
-    
+
     /// Calculate delay for a retry attempt - returns seconds as f64
     pub fn calculate_delay(&self, attempt: u32) -> f64 {
         let base_delay = self.initial_delay * self.exponential_base.powi(attempt as i32);
         let delay = base_delay.min(self.max_delay);
-        
+
         if self.jitter {
             // Add jitter (±50%)
             let jitter_range = delay * 0.5;
@@ -422,62 +461,66 @@ impl RetryConfig {
             delay
         }
     }
-    
+
     /// Calculate delay with enhanced backoff including consecutive failure penalty
     pub fn calculate_delay_with_backoff(&self, attempt: u32, consecutive_failures: u32) -> f64 {
         let base_delay = self.initial_delay * self.exponential_base.powi(attempt as i32);
-        
+
         // Add penalty for consecutive failures across requests
         let failure_penalty = 1.0 + (consecutive_failures as f64 * 0.2).min(2.0);
         let adjusted_delay = base_delay * failure_penalty;
-        
+
         let delay = adjusted_delay.min(self.max_delay);
-        
+
         if self.jitter {
             // Add jitter (±30% for more predictable behavior in critical scenarios)
             let jitter_range = delay * 0.3;
             let jitter = (rand::random::<f64>() - 0.5) * 2.0 * jitter_range;
-            (delay + jitter).max(0.01)  // Minimum 10ms delay
+            (delay + jitter).max(0.01) // Minimum 10ms delay
         } else {
             delay
         }
     }
-    
+
     /// Check if a status code should trigger a retry
     pub fn should_retry_status(&self, status_code: u16) -> bool {
         self.retry_on_status_codes.contains(&status_code)
     }
-    
+
     /// Check if a status code should trigger a retry based on circuit breaker pattern
     pub fn should_retry_with_circuit_breaker(&self, status_code: u16, failure_rate: f64) -> bool {
         // Circuit breaker: don't retry if failure rate is too high (>80%)
         if failure_rate > 0.8 {
             return false;
         }
-        
+
         self.retry_on_status_codes.contains(&status_code)
     }
-    
+
     /// Get adaptive retry configuration based on current system metrics
     pub fn get_adaptive_config(&self, avg_response_time: f64, error_rate: f64) -> RetryConfig {
         let mut config = self.clone();
-        
+
         // Adjust based on system performance
-        if avg_response_time > 5.0 {  // Slow responses
+        if avg_response_time > 5.0 {
+            // Slow responses
             config.max_delay = config.max_delay * 1.5;
             config.initial_delay = config.initial_delay * 1.2;
-        } else if avg_response_time < 1.0 {  // Fast responses
+        } else if avg_response_time < 1.0 {
+            // Fast responses
             config.max_delay = config.max_delay * 0.8;
             config.initial_delay = config.initial_delay * 0.8;
         }
-        
+
         // Adjust retry count based on error rate
-        if error_rate > 0.3 {  // High error rate
+        if error_rate > 0.3 {
+            // High error rate
             config.max_retries = (config.max_retries + 2).min(8);
-        } else if error_rate < 0.05 {  // Low error rate
+        } else if error_rate < 0.05 {
+            // Low error rate
             config.max_retries = config.max_retries.saturating_sub(1).max(1);
         }
-        
+
         config
     }
 }
@@ -491,9 +534,9 @@ pub struct PoolConfig {
     #[pyo3(get, set)]
     pub max_idle_per_host: usize,
     #[pyo3(get, set)]
-    pub idle_timeout: f64,  // seconds
+    pub idle_timeout: f64, // seconds
     #[pyo3(get, set)]
-    pub pool_timeout: f64,  // seconds
+    pub pool_timeout: f64, // seconds
 }
 
 #[pymethods]
@@ -525,13 +568,13 @@ impl PoolConfig {
 #[derive(Clone, Debug)]
 pub struct TimeoutConfig {
     #[pyo3(get, set)]
-    pub connect_timeout: Option<f64>,  // seconds
+    pub connect_timeout: Option<f64>, // seconds
     #[pyo3(get, set)]
-    pub read_timeout: Option<f64>,     // seconds
+    pub read_timeout: Option<f64>, // seconds
     #[pyo3(get, set)]
-    pub write_timeout: Option<f64>,    // seconds
+    pub write_timeout: Option<f64>, // seconds
     #[pyo3(get, set)]
-    pub pool_timeout: Option<f64>,     // seconds
+    pub pool_timeout: Option<f64>, // seconds
 }
 
 #[pymethods]
@@ -556,7 +599,7 @@ impl TimeoutConfig {
             pool_timeout,
         }
     }
-    
+
     /// Create a default timeout configuration
     #[staticmethod]
     pub fn default() -> Self {
@@ -651,7 +694,7 @@ impl OAuth2Token {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs_f64();
-        
+
         OAuth2Token {
             access_token,
             token_type,
@@ -668,13 +711,13 @@ impl OAuth2Token {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_secs_f64();
-            
+
             current_time > (self.issued_at + expires_in as f64)
         } else {
             false
         }
     }
-    
+
     /// Get remaining lifetime in seconds
     pub fn remaining_lifetime(&self) -> Option<f64> {
         if let Some(expires_in) = self.expires_in {
@@ -682,7 +725,7 @@ impl OAuth2Token {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_secs_f64();
-            
+
             let expiry_time = self.issued_at + expires_in as f64;
             if current_time < expiry_time {
                 Some(expiry_time - current_time)
@@ -706,7 +749,7 @@ pub struct ProxyConfig {
     #[pyo3(get)]
     pub password: Option<String>,
     #[pyo3(get)]
-    pub no_proxy: Option<Vec<String>>,  // Domains to bypass proxy
+    pub no_proxy: Option<Vec<String>>, // Domains to bypass proxy
 }
 
 #[pymethods]
@@ -726,7 +769,7 @@ impl ProxyConfig {
             no_proxy,
         }
     }
-    
+
     /// Create HTTP proxy configuration
     #[staticmethod]
     pub fn http(url: &str, username: Option<String>, password: Option<String>) -> Self {
@@ -737,7 +780,7 @@ impl ProxyConfig {
             no_proxy: None,
         }
     }
-    
+
     /// Create HTTPS proxy configuration
     #[staticmethod]
     pub fn https(url: &str, username: Option<String>, password: Option<String>) -> Self {
@@ -748,7 +791,7 @@ impl ProxyConfig {
             no_proxy: None,
         }
     }
-    
+
     /// Create SOCKS5 proxy configuration
     #[staticmethod]
     pub fn socks5(url: &str, username: Option<String>, password: Option<String>) -> Self {
@@ -759,7 +802,7 @@ impl ProxyConfig {
             no_proxy: None,
         }
     }
-    
+
     /// Set domains to bypass proxy
     pub fn set_no_proxy(&mut self, domains: Vec<String>) {
         self.no_proxy = Some(domains);
@@ -775,11 +818,11 @@ pub struct CompressionConfig {
     #[pyo3(get)]
     pub enable_response_compression: bool,
     #[pyo3(get)]
-    pub compression_algorithms: Vec<String>,  // gzip, deflate, brotli
+    pub compression_algorithms: Vec<String>, // gzip, deflate, brotli
     #[pyo3(get)]
-    pub compression_level: Option<u32>,       // 1-9 for gzip/deflate, 1-11 for brotli
+    pub compression_level: Option<u32>, // 1-9 for gzip/deflate, 1-11 for brotli
     #[pyo3(get)]
-    pub min_compression_size: usize,          // Minimum size to compress
+    pub min_compression_size: usize, // Minimum size to compress
 }
 
 #[pymethods]
@@ -800,9 +843,13 @@ impl CompressionConfig {
         min_compression_size: usize,
     ) -> Self {
         let algorithms = compression_algorithms.unwrap_or_else(|| {
-            vec!["gzip".to_string(), "deflate".to_string(), "brotli".to_string()]
+            vec![
+                "gzip".to_string(),
+                "deflate".to_string(),
+                "brotli".to_string(),
+            ]
         });
-        
+
         CompressionConfig {
             enable_request_compression,
             enable_response_compression,
@@ -811,7 +858,7 @@ impl CompressionConfig {
             min_compression_size,
         }
     }
-    
+
     /// Create a configuration with gzip only
     #[staticmethod]
     pub fn gzip_only() -> Self {
@@ -823,34 +870,38 @@ impl CompressionConfig {
             min_compression_size: 1024,
         }
     }
-    
+
     /// Create a configuration with all algorithms
     #[staticmethod]
     pub fn all_algorithms() -> Self {
         CompressionConfig {
             enable_request_compression: true,
             enable_response_compression: true,
-            compression_algorithms: vec!["gzip".to_string(), "deflate".to_string(), "brotli".to_string()],
+            compression_algorithms: vec![
+                "gzip".to_string(),
+                "deflate".to_string(),
+                "brotli".to_string(),
+            ],
             compression_level: Some(6),
             min_compression_size: 512,
         }
     }
-    
+
     /// Check if request body should be compressed
     pub fn should_compress_request(&self, content_length: usize, content_type: &str) -> bool {
         if !self.enable_request_compression {
             return false;
         }
-        
+
         // Check minimum size threshold
         if content_length < self.min_compression_size {
             return false;
         }
-        
+
         // Check if content type is compressible
         self.is_compressible_content_type(content_type)
     }
-    
+
     /// Check if content type should be compressed
     pub fn is_compressible_content_type(&self, content_type: &str) -> bool {
         let compressible_types = [
@@ -864,21 +915,23 @@ impl CompressionConfig {
             "application/soap+xml",
             "application/xhtml+xml",
             "application/rss+xml",
-            "application/atom+xml"
+            "application/atom+xml",
         ];
-        
+
         let content_type_lower = content_type.to_lowercase();
-        compressible_types.iter().any(|ct| content_type_lower.starts_with(ct))
+        compressible_types
+            .iter()
+            .any(|ct| content_type_lower.starts_with(ct))
     }
-    
+
     /// Get preferred compression algorithm for Accept-Encoding header
     pub fn get_accept_encoding_header(&self) -> String {
         if !self.enable_response_compression {
             return "identity".to_string();
         }
-        
+
         let mut encodings = Vec::new();
-        
+
         for algorithm in &self.compression_algorithms {
             match algorithm.as_str() {
                 "gzip" => encodings.push("gzip"),
@@ -887,61 +940,87 @@ impl CompressionConfig {
                 _ => {}
             }
         }
-        
+
         if encodings.is_empty() {
             "identity".to_string()
         } else {
             encodings.join(", ")
         }
     }
-    
+
     /// Check if algorithm is supported
     pub fn supports_algorithm(&self, algorithm: &str) -> bool {
         self.compression_algorithms.contains(&algorithm.to_string())
     }
 
     /// Compress request body using specified algorithm
-    pub fn compress_request_body(&self, body: &[u8], algorithm: &str) -> Result<Vec<u8>, UltraFastError> {
+    pub fn compress_request_body(
+        &self,
+        body: &[u8],
+        algorithm: &str,
+    ) -> Result<Vec<u8>, UltraFastError> {
         if !self.enable_request_compression {
-            return Err(UltraFastError::ConfigError("Request compression is disabled".to_string()));
+            return Err(UltraFastError::ConfigError(
+                "Request compression is disabled".to_string(),
+            ));
         }
 
         if !self.supports_algorithm(algorithm) {
-            return Err(UltraFastError::ConfigError(format!("Unsupported compression algorithm: {}", algorithm)));
+            return Err(UltraFastError::ConfigError(format!(
+                "Unsupported compression algorithm: {}",
+                algorithm
+            )));
         }
 
         match algorithm {
             "gzip" => {
-                use flate2::{Compression, write::GzEncoder};
+                use flate2::{write::GzEncoder, Compression};
                 use std::io::Write;
-                
-                let level = self.compression_level
-                    .ok_or_else(|| UltraFastError::ConfigError("Compression level not set".to_string()))?;
+
+                let level = self.compression_level.ok_or_else(|| {
+                    UltraFastError::ConfigError("Compression level not set".to_string())
+                })?;
                 let mut encoder = GzEncoder::new(Vec::new(), Compression::new(level));
-                encoder.write_all(body).map_err(|e| UltraFastError::IoError(format!("Gzip compression failed: {}", e)))?;
-                encoder.finish().map_err(|e| UltraFastError::IoError(format!("Gzip compression finish failed: {}", e)))
-            },
+                encoder.write_all(body).map_err(|e| {
+                    UltraFastError::IoError(format!("Gzip compression failed: {}", e))
+                })?;
+                encoder.finish().map_err(|e| {
+                    UltraFastError::IoError(format!("Gzip compression finish failed: {}", e))
+                })
+            }
             "deflate" => {
-                use flate2::{Compression, write::DeflateEncoder};
+                use flate2::{write::DeflateEncoder, Compression};
                 use std::io::Write;
-                
-                let level = self.compression_level
-                    .ok_or_else(|| UltraFastError::ConfigError("Compression level not set".to_string()))?;
+
+                let level = self.compression_level.ok_or_else(|| {
+                    UltraFastError::ConfigError("Compression level not set".to_string())
+                })?;
                 let mut encoder = DeflateEncoder::new(Vec::new(), Compression::new(level));
-                encoder.write_all(body).map_err(|e| UltraFastError::IoError(format!("Deflate compression failed: {}", e)))?;
-                encoder.finish().map_err(|e| UltraFastError::IoError(format!("Deflate compression finish failed: {}", e)))
-            },
+                encoder.write_all(body).map_err(|e| {
+                    UltraFastError::IoError(format!("Deflate compression failed: {}", e))
+                })?;
+                encoder.finish().map_err(|e| {
+                    UltraFastError::IoError(format!("Deflate compression finish failed: {}", e))
+                })
+            }
             "brotli" => {
-                let level = self.compression_level
-                    .ok_or_else(|| UltraFastError::ConfigError("Compression level not set".to_string()))?;
+                let level = self.compression_level.ok_or_else(|| {
+                    UltraFastError::ConfigError("Compression level not set".to_string())
+                })?;
                 let mut compressed = Vec::new();
-                let mut compressor = brotli::CompressorWriter::new(&mut compressed, 4096, level, 22);
+                let mut compressor =
+                    brotli::CompressorWriter::new(&mut compressed, 4096, level, 22);
                 use std::io::Write;
-                compressor.write_all(body).map_err(|e| UltraFastError::IoError(format!("Brotli compression failed: {}", e)))?;
+                compressor.write_all(body).map_err(|e| {
+                    UltraFastError::IoError(format!("Brotli compression failed: {}", e))
+                })?;
                 drop(compressor);
                 Ok(compressed)
-            },
-            _ => Err(UltraFastError::ConfigError(format!("Unsupported compression algorithm: {}", algorithm)))
+            }
+            _ => Err(UltraFastError::ConfigError(format!(
+                "Unsupported compression algorithm: {}",
+                algorithm
+            ))),
         }
     }
 }
@@ -960,16 +1039,16 @@ pub enum HttpVersion {
 impl HttpVersion {
     #[classattr]
     const HTTP1: HttpVersion = HttpVersion::Http1;
-    
+
     #[classattr]
     const HTTP2: HttpVersion = HttpVersion::Http2;
-    
+
     #[classattr]
     const HTTP3: HttpVersion = HttpVersion::Http3;
-    
+
     #[classattr]
     const AUTO: HttpVersion = HttpVersion::Auto;
-    
+
     fn __str__(&self) -> String {
         match self {
             HttpVersion::Http1 => "HTTP/1.1".to_string(),
@@ -978,7 +1057,7 @@ impl HttpVersion {
             HttpVersion::Auto => "Auto".to_string(),
         }
     }
-    
+
     fn __repr__(&self) -> String {
         self.__str__()
     }
@@ -1045,15 +1124,15 @@ impl Http2Settings {
             adaptive_window,
         }
     }
-    
+
     /// Create high performance HTTP/2 settings for high-throughput scenarios
     #[staticmethod]
     pub fn high_performance() -> Self {
         Http2Settings {
             max_concurrent_streams: Some(1000),
-            initial_window_size: Some(1048576), // 1MB
+            initial_window_size: Some(1048576),             // 1MB
             initial_connection_window_size: Some(10485760), // 10MB
-            max_frame_size: Some(16777215), // Max allowed
+            max_frame_size: Some(16777215),                 // Max allowed
             max_header_list_size: Some(16384),
             enable_push: true, // Enable push for test compatibility
             keep_alive_interval: Some(30),
@@ -1061,15 +1140,15 @@ impl Http2Settings {
             adaptive_window: true,
         }
     }
-    
+
     /// Create conservative HTTP/2 settings for compatibility
     #[staticmethod]
     pub fn conservative() -> Self {
         Http2Settings {
             max_concurrent_streams: Some(100),
-            initial_window_size: Some(65536), // 64KB
+            initial_window_size: Some(65536),              // 64KB
             initial_connection_window_size: Some(1048576), // 1MB
-            max_frame_size: Some(16384), // Default
+            max_frame_size: Some(16384),                   // Default
             max_header_list_size: Some(8192),
             enable_push: false,
             keep_alive_interval: Some(60),
@@ -1077,7 +1156,7 @@ impl Http2Settings {
             adaptive_window: false,
         }
     }
-    
+
     /// Create default HTTP/2 settings
     #[staticmethod]
     pub fn default() -> Self {
@@ -1171,7 +1250,7 @@ impl Http3Settings {
             pool_timeout_seconds,
         }
     }
-    
+
     /// Create default HTTP/3 settings
     #[staticmethod]
     pub fn default() -> Self {
@@ -1267,9 +1346,9 @@ impl ProtocolConfig {
             custom_fallback_order,
         }
     }
-    
+
     /// Create default protocol configuration
-    #[staticmethod]  
+    #[staticmethod]
     pub fn default() -> Self {
         ProtocolConfig {
             preferred_version: HttpVersion::Auto,
@@ -1305,10 +1384,14 @@ impl ProtocolConfig {
     /// Validate protocol configuration
     pub fn validate(&self) -> Result<(), UltraFastError> {
         if self.protocol_negotiation_timeout <= 0.0 {
-            return Err(UltraFastError::ConfigError("Protocol negotiation timeout must be positive".to_string()));
+            return Err(UltraFastError::ConfigError(
+                "Protocol negotiation timeout must be positive".to_string(),
+            ));
         }
         if self.protocol_negotiation_timeout > 300.0 {
-            return Err(UltraFastError::ConfigError("Protocol negotiation timeout too large (max 300s)".to_string()));
+            return Err(UltraFastError::ConfigError(
+                "Protocol negotiation timeout too large (max 300s)".to_string(),
+            ));
         }
         Ok(())
     }
@@ -1327,15 +1410,21 @@ pub enum RateLimitAlgorithm {
 impl RateLimitAlgorithm {
     #[classattr]
     #[allow(non_snake_case)]
-    fn TOKEN_BUCKET() -> RateLimitAlgorithm { RateLimitAlgorithm::TokenBucket }
-    
+    fn TOKEN_BUCKET() -> RateLimitAlgorithm {
+        RateLimitAlgorithm::TokenBucket
+    }
+
     #[classattr]
     #[allow(non_snake_case)]
-    fn SLIDING_WINDOW() -> RateLimitAlgorithm { RateLimitAlgorithm::SlidingWindow }
-    
+    fn SLIDING_WINDOW() -> RateLimitAlgorithm {
+        RateLimitAlgorithm::SlidingWindow
+    }
+
     #[classattr]
     #[allow(non_snake_case)]
-    fn FIXED_WINDOW() -> RateLimitAlgorithm { RateLimitAlgorithm::FixedWindow }
+    fn FIXED_WINDOW() -> RateLimitAlgorithm {
+        RateLimitAlgorithm::FixedWindow
+    }
 }
 
 /// Rate limiting configuration for HTTP requests
@@ -1344,37 +1433,37 @@ impl RateLimitAlgorithm {
 pub struct RateLimitConfig {
     #[pyo3(get, set)]
     pub enabled: bool,
-    
+
     #[pyo3(get, set)]
     pub algorithm: RateLimitAlgorithm,
-    
+
     #[pyo3(get, set)]
     pub requests_per_second: f64,
-    
+
     #[pyo3(get, set)]
     pub requests_per_minute: Option<u32>,
-    
+
     #[pyo3(get, set)]
     pub requests_per_hour: Option<u32>,
-    
+
     #[pyo3(get, set)]
     pub burst_size: Option<u32>,
-    
+
     #[pyo3(get, set)]
     pub window_size_seconds: f64,
-    
+
     #[pyo3(get, set)]
     pub per_host: bool,
-    
+
     #[pyo3(get, set)]
     pub reset_on_success: bool,
-    
+
     #[pyo3(get, set)]
     pub queue_requests: bool,
-    
+
     #[pyo3(get, set)]
     pub max_queue_size: usize,
-    
+
     #[pyo3(get, set)]
     pub queue_timeout_seconds: f64,
 }
@@ -1425,7 +1514,7 @@ impl RateLimitConfig {
             queue_timeout_seconds,
         }
     }
-    
+
     /// Create a conservative rate limiting configuration
     #[staticmethod]
     pub fn conservative() -> Self {
@@ -1444,7 +1533,7 @@ impl RateLimitConfig {
             queue_timeout_seconds: 30.0,
         }
     }
-    
+
     /// Create a moderate rate limiting configuration
     #[staticmethod]
     pub fn moderate() -> Self {
@@ -1463,7 +1552,7 @@ impl RateLimitConfig {
             queue_timeout_seconds: 30.0,
         }
     }
-    
+
     /// Create an aggressive rate limiting configuration for high-throughput
     #[staticmethod]
     pub fn aggressive() -> Self {
@@ -1482,7 +1571,7 @@ impl RateLimitConfig {
             queue_timeout_seconds: 60.0,
         }
     }
-    
+
     /// Create a disabled rate limiting configuration
     #[staticmethod]
     pub fn disabled() -> Self {
@@ -1506,16 +1595,25 @@ impl RateLimitConfig {
     pub fn validate(&self) -> Result<(), UltraFastError> {
         if self.enabled {
             if self.requests_per_second <= 0.0 {
-                return Err(UltraFastError::ConfigError("requests_per_second must be positive when rate limiting is enabled".to_string()));
+                return Err(UltraFastError::ConfigError(
+                    "requests_per_second must be positive when rate limiting is enabled"
+                        .to_string(),
+                ));
             }
             if self.window_size_seconds <= 0.0 {
-                return Err(UltraFastError::ConfigError("window_size_seconds must be positive".to_string()));
+                return Err(UltraFastError::ConfigError(
+                    "window_size_seconds must be positive".to_string(),
+                ));
             }
             if self.queue_timeout_seconds < 0.0 {
-                return Err(UltraFastError::ConfigError("queue_timeout_seconds cannot be negative".to_string()));
+                return Err(UltraFastError::ConfigError(
+                    "queue_timeout_seconds cannot be negative".to_string(),
+                ));
             }
             if self.queue_requests && self.max_queue_size == 0 {
-                return Err(UltraFastError::ConfigError("max_queue_size must be positive when queue_requests is enabled".to_string()));
+                return Err(UltraFastError::ConfigError(
+                    "max_queue_size must be positive when queue_requests is enabled".to_string(),
+                ));
             }
         }
         Ok(())

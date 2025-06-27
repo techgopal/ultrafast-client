@@ -2,7 +2,7 @@
 
 A **production-ready**, high-performance HTTP client for Python built with Rust and Tokio. Featuring complete sync/async support, HTTP/3, WebSocket, Server-Sent Events, and enterprise-grade features.
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com) [![Coverage](https://img.shields.io/badge/coverage-83%25-yellow.svg)](https://github.com) [![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com) [![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://rustlang.org) [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://python.org)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com) [![Coverage](https://img.shields.io/badge/coverage-83%25-yellow.svg)](https://github.com) [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com) [![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://rustlang.org) [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://python.org)
 
 ## 🏆 **STATUS: PRODUCTION READY**
 
