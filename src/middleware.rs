@@ -238,10 +238,11 @@ impl MiddlewareManager {
     pub fn get_rate_limit_status(&self, host: &str) -> f64 {
         match self.middleware_stack.read() {
             Ok(stack) => {
-                for middleware in &stack.rate_limit_middleware {
-                    return middleware.get_status(host);
+                if let Some(middleware) = stack.rate_limit_middleware.iter().next() {
+                    middleware.get_status(host)
+                } else {
+                    0.0
                 }
-                0.0
             }
             Err(_) => 0.0,
         }
