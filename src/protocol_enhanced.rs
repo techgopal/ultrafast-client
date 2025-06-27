@@ -1,10 +1,9 @@
 use crate::config::{HttpVersion, ProtocolConfig, ProtocolFallback};
 use ahash::AHashMap;
 use once_cell::sync::Lazy;
-use parking_lot::RwLock;
 use std::net::SocketAddr;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
 /// Enhanced protocol negotiator with machine learning capabilities
@@ -16,8 +15,6 @@ pub struct EnhancedProtocolNegotiator {
     weights: Arc<RwLock<ProtocolWeights>>,
     #[allow(dead_code)]
     fallback_strategy: ProtocolFallback,
-    // Add performance optimizations
-    connection_pool: Arc<ConnectionPool>,
     // Cache settings with TTL support
     cache_ttl: Duration,
     #[allow(dead_code)]
@@ -117,7 +114,6 @@ impl EnhancedProtocolNegotiator {
             metrics_cache: Arc::new(RwLock::new(AHashMap::new())),
             weights: Arc::new(RwLock::new(AHashMap::new())),
             fallback_strategy,
-            connection_pool: Arc::new(ConnectionPool::new()),
             cache_ttl: Duration::from_secs(3600), // 1 hour cache
             dns_cache: Arc::new(RwLock::new(AHashMap::new())),
             dns_cache_ttl: Duration::from_secs(300), // 5 minute DNS cache
@@ -139,12 +135,9 @@ impl EnhancedProtocolNegotiator {
         // Fast path: check cache first
         if let Some(capabilities) = self.get_cached_capabilities(host) {
             if !self.is_cache_expired(&capabilities) {
-                self.cache_hits.fetch_add(1, Ordering::Relaxed);
                 return self.select_best_protocol(&capabilities, config);
             }
         }
-
-        self.cache_misses.fetch_add(1, Ordering::Relaxed);
 
         // Slow path: detect protocol capabilities
         let capabilities = self.detect_protocol_capabilities(host).await;
@@ -357,20 +350,12 @@ impl EnhancedProtocolNegotiator {
 
     /// Get cache statistics for monitoring
     pub fn get_cache_stats(&self) -> CacheStats {
-        let hits = self.cache_hits.load(Ordering::Relaxed);
-        let misses = self.cache_misses.load(Ordering::Relaxed);
-        let total = hits + misses;
-        let hit_rate = if total > 0 {
-            hits as f64 / total as f64
-        } else {
-            0.0
-        };
-
         let cache = self.protocol_cache.read();
+        
         CacheStats {
-            cache_hits: hits,
-            cache_misses: misses,
-            hit_rate,
+            cache_hits: 0, // Simplified - not tracking hits/misses anymore
+            cache_misses: 0,
+            hit_rate: 0.0,
             cached_hosts: cache.len(),
             cache_size_bytes: std::mem::size_of_val(&*cache)
                 + cache
@@ -430,8 +415,16 @@ pub struct CacheStats {
 
 /// Extract hostname from URL
 fn extract_host(url: &str) -> String {
-    if let Ok(parsed) = url::Url::parse(url) {
-        parsed.host_str().unwrap_or("localhost").to_string()
+    // Simple hostname extraction without external dependencies
+    if let Some(start) = url.find("://") {
+        let after_protocol = &url[start + 3..];
+        if let Some(end) = after_protocol.find('/') {
+            after_protocol[..end].to_string()
+        } else if let Some(end) = after_protocol.find(':') {
+            after_protocol[..end].to_string()
+        } else {
+            after_protocol.to_string()
+        }
     } else {
         "localhost".to_string()
     }
