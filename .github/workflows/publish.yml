@@ -1,0 +1,109 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      test_pypi:
+        description: 'Publish to Test PyPI instead'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build-and-publish:
+    name: Build and Publish to PyPI
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install maturin and twine
+        run: |
+          pip install maturin twine build
+      
+      - name: Build source distribution
+        run: maturin sdist
+      
+      - name: Build wheels for multiple platforms
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --strip --interpreter 3.9 3.10 3.11 3.12
+          manylinux: auto
+      
+      - name: List built packages
+        run: ls -la target/wheels/
+      
+      - name: Publish to Test PyPI
+        if: ${{ github.event.inputs.test_pypi == 'true' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: target/wheels/
+          skip-existing: true
+      
+      - name: Publish to PyPI
+        if: ${{ github.event.inputs.test_pypi != 'true' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: target/wheels/
+          skip-existing: true
+      
+      - name: Create GitHub Release Assets
+        if: github.event_name == 'release'
+        run: |
+          gh release upload ${{ github.event.release.tag_name }} target/wheels/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-installation:
+    name: Test Installation from PyPI
+    needs: build-and-publish
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.9', '3.11', '3.12']
+    
+    steps:
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Wait for PyPI propagation
+        run: sleep 300  # Wait 5 minutes for PyPI to propagate
+      
+      - name: Install from PyPI
+        run: |
+          pip install ultrafast-client
+      
+      - name: Test installation
+        run: |
+          python -c "
+          import ultrafast_client
+          print(f'✅ Successfully installed ultrafast-client v{ultrafast_client.__version__}')
+          
+          # Test basic functionality
+          client = ultrafast_client.HttpClient()
+          print('✅ HttpClient works')
+          
+          async_client = ultrafast_client.AsyncHttpClient()
+          print('✅ AsyncHttpClient works')
+          
+          print('🎉 PyPI installation test passed!')
+          "

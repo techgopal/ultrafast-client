@@ -11,8 +11,8 @@ authors = [
 ]
 license = {text = "Apache-2.0"}
 readme = "README.md"
-homepage = "https://github.com/your-org/ultrafast-client"
-repository = "https://github.com/your-org/ultrafast-client"
+homepage = "https://github.com/techgopal/ultrafast-client"
+repository = "https://github.com/techgopal/ultrafast-client"
 documentation = "https://ultrafast-client.readthedocs.io"
 keywords = ["http", "client", "async", "rust", "performance"]
 classifiers = [
@@ -74,10 +74,12 @@ benchmark = [
 ]
 
 [project.urls]
-"Bug Reports" = "https://github.com/your-org/ultrafast-client/issues"
-"Source" = "https://github.com/your-org/ultrafast-client"
+"Bug Reports" = "https://github.com/techgopal/ultrafast-client/issues"
+"Source" = "https://github.com/techgopal/ultrafast-client"
 "Documentation" = "https://ultrafast-client.readthedocs.io"
-"Changelog" = "https://github.com/your-org/ultrafast-client/blob/main/CHANGELOG.md"
+"Changelog" = "https://github.com/techgopal/ultrafast-client/blob/main/CHANGELOG.md"
+"Funding" = "https://github.com/sponsors/techgopal"
+"Release Notes" = "https://github.com/techgopal/ultrafast-client/releases"
 
 [tool.maturin]
 python-source = "python"

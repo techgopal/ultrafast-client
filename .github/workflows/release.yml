@@ -1,0 +1,123 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v0.1.0)'
+        required: true
+        type: string
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      release_id: ${{ steps.create_release.outputs.id }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          if [ -f CHANGELOG.md ]; then
+            head -n 50 CHANGELOG.md >> $GITHUB_OUTPUT
+          else
+            echo "See commit history for changes." >> $GITHUB_OUTPUT
+          fi
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name || github.event.inputs.version }}
+          release_name: UltraFast HTTP Client ${{ github.ref_name || github.event.inputs.version }}
+          body: |
+            # UltraFast HTTP Client ${{ github.ref_name || github.event.inputs.version }}
+            
+            A blazingly fast HTTP client for Python, built with Rust and Tokio.
+            
+            ## 🚀 Features
+            - High-performance HTTP/1.1, HTTP/2, and HTTP/3 support
+            - Synchronous and asynchronous clients with full feature parity
+            - WebSocket and Server-Sent Events support
+            - Advanced session management and connection pooling
+            - Comprehensive middleware system
+            - Production-ready optimizations
+            
+            ## 📦 Installation
+            ```bash
+            pip install ultrafast-client
+            ```
+            
+            ## 🔧 Quick Start
+            ```python
+            import ultrafast_client
+            
+            # Sync client
+            client = ultrafast_client.HttpClient()
+            response = client.get("https://api.example.com/data")
+            
+            # Async client
+            async_client = ultrafast_client.AsyncHttpClient()
+            response = await async_client.get("https://api.example.com/data")
+            ```
+            
+            ## 📋 Changelog
+            ${{ steps.changelog.outputs.CHANGELOG }}
+          draft: false
+          prerelease: false
+
+  build-release-assets:
+    name: Build Release Assets
+    needs: create-release
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install maturin
+        run: pip install maturin
+      
+      - name: Build release wheels
+        run: maturin build --release --strip
+      
+      - name: Build source distribution (Ubuntu only)
+        if: matrix.os == 'ubuntu-latest'
+        run: maturin sdist
+      
+      - name: Upload wheel assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: target/wheels/
+          asset_name: ultrafast-client-wheels-${{ matrix.os }}.zip
+          asset_content_type: application/zip
+        continue-on-error: true

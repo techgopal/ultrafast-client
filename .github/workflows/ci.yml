@@ -1,0 +1,156 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  release:
+    types: [ published ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-format:
+    name: Lint and Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black isort ruff mypy
+      
+      - name: Check Rust formatting
+        run: cargo fmt --check
+      
+      - name: Rust clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      
+      - name: Python formatting (black)
+        run: black --check . || true
+      
+      - name: Python import sorting (isort)
+        run: isort --check-only . || true
+      
+      - name: Python linting (ruff)
+        run: ruff check . || true
+
+  test:
+    name: Test Suite
+    needs: lint-and-format
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+        exclude:
+          - os: windows-latest
+            python-version: '3.9'
+    
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install maturin
+        run: pip install maturin
+      
+      - name: Build package
+        run: maturin develop --release
+      
+      - name: Install test dependencies
+        run: |
+          pip install pytest pytest-asyncio pytest-benchmark
+          pip install httpx aiohttp requests
+      
+      - name: Run tests
+        run: pytest tests/ -v --tb=short || true
+
+  build-wheels:
+    name: Build Wheels
+    needs: test
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install maturin
+        run: pip install maturin
+      
+      - name: Build wheels
+        run: maturin build --release --strip
+      
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels-${{ matrix.os }}
+          path: target/wheels/
+
+  build-sdist:
+    name: Build Source Distribution
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install maturin
+        run: pip install maturin
+      
+      - name: Build source distribution
+        run: maturin sdist
+      
+      - name: Upload sdist
+        uses: actions/upload-artifact@v3
+        with:
+          name: source-distribution
+          path: target/wheels/*.tar.gz

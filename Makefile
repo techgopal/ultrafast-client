@@ -73,13 +73,48 @@ release-build: ## Build for release
 	@echo "Building for release..."
 	maturin build --release
 
+build-all: ## Build all distribution packages
+	@echo "📦 Building all distribution packages..."
+	rm -rf target/wheels/*
+	maturin build --release --strip
+	maturin sdist
+	@echo "✅ Built packages:"
+	@ls -la target/wheels/
+
 publish-test: ## Publish to test PyPI
-	@echo "Publishing to test PyPI..."
-	maturin publish --repository testpypi
+	@echo "🧪 Publishing to Test PyPI..."
+	$(MAKE) build-all
+	python -m twine upload --repository testpypi target/wheels/*
+	@echo "✅ Published to Test PyPI"
+	@echo "💡 Test with: pip install --index-url https://test.pypi.org/simple/ ultrafast-client"
 
 publish: ## Publish to PyPI
-	@echo "Publishing to PyPI..."
-	maturin publish
+	@echo "🚀 Publishing to PyPI..."
+	$(MAKE) build-all
+	python -m twine upload target/wheels/*
+	@echo "✅ Published to PyPI"
+	@echo "💡 Install with: pip install ultrafast-client"
+	@echo "💡 Install with uv: uv add ultrafast-client"
+
+publish-all: ## Publish to both Test PyPI and PyPI
+	@echo "🎉 Publishing to both repositories..."
+	$(MAKE) publish-test
+	$(MAKE) publish
+	@echo "🎉 Published to both Test PyPI and PyPI!"
+
+check-publish: ## Check package for PyPI upload
+	@echo "🔍 Checking package for PyPI upload..."
+	python -m twine check target/wheels/*
+
+install-from-pypi: ## Test installation from PyPI
+	@echo "🧪 Testing installation from PyPI..."
+	pip install ultrafast-client
+	python -c "import ultrafast_client; print(f'✅ Installed v{ultrafast_client.__version__}')"
+
+install-from-test-pypi: ## Test installation from Test PyPI
+	@echo "🧪 Testing installation from Test PyPI..."
+	pip install --index-url https://test.pypi.org/simple/ ultrafast-client
+	python -c "import ultrafast_client; print(f'✅ Installed v{ultrafast_client.__version__}')"
 
 check: ## Run all checks (format, lint, test)
 	@echo "Running all checks..."
