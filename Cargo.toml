@@ -1,12 +1,12 @@
 [package]
 name = "ultrafast-client"
 version = "0.1.3"
-authors = ["UltraFast Team <team@ultrafast-client.dev>"]
+authors = ["UltraFast Team <techgopal@example.com>"]
 edition = "2021"
 description = "A blazingly fast HTTP client for Python, built with Rust and Tokio"
 license = "Apache-2.0"
-homepage = "https://github.com/your-org/ultrafast-client"
-repository = "https://github.com/your-org/ultrafast-client"
+homepage = "https://github.com/techgopal/ultrafast-client"
+repository = "https://github.com/techgopal/ultrafast-client"
 readme = "README.md"
 keywords = ["http", "client", "async", "tokio", "python"]
 categories = ["network-programming", "web-programming::http-client", "api-bindings"]
