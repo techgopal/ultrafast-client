@@ -2,7 +2,7 @@ name: Publish to PyPI
 
 on:
   release:
-    types: [published]
+    types: [published, released]
   workflow_dispatch:
     inputs:
       test_pypi:
@@ -54,6 +54,7 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
           packages-dir: target/wheels/
           skip-existing: true
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
       
       - name: Publish to PyPI
         if: ${{ github.event.inputs.test_pypi != 'true' }}
@@ -61,6 +62,7 @@ jobs:
         with:
           packages-dir: target/wheels/
           skip-existing: true
+          password: ${{ secrets.PYPI_API_TOKEN }}
       
       - name: Create GitHub Release Assets
         if: github.event_name == 'release'

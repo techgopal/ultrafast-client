@@ -40,12 +40,12 @@ jobs:
       
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref_name || github.event.inputs.version }}
-          release_name: UltraFast HTTP Client ${{ github.ref_name || github.event.inputs.version }}
+          name: UltraFast HTTP Client ${{ github.ref_name || github.event.inputs.version }}
           body: |
             # UltraFast HTTP Client ${{ github.ref_name || github.event.inputs.version }}
             
@@ -81,6 +81,7 @@ jobs:
             ${{ steps.changelog.outputs.CHANGELOG }}
           draft: false
           prerelease: false
+          generate_release_notes: true
 
   build-release-assets:
     name: Build Release Assets
@@ -111,13 +112,10 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: maturin sdist
       
-      - name: Upload wheel assets
-        uses: actions/upload-release-asset@v1
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: target/wheels/
-          asset_name: ultrafast-client-wheels-${{ matrix.os }}.zip
-          asset_content_type: application/zip
-        continue-on-error: true
+          tag_name: ${{ github.ref_name || github.event.inputs.version }}
+          files: target/wheels/*
