@@ -1,4 +1,4 @@
-name: Create Release
+name: Create Release and Publish
 
 on:
   push:
@@ -16,6 +16,7 @@ permissions:
   issues: write
   pull-requests: write
   repository-projects: write
+  id-token: write
 
 jobs:
   create-release:
@@ -29,6 +30,7 @@ jobs:
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       release_id: ${{ steps.create_release.outputs.id }}
+      tag_name: ${{ github.ref_name || github.event.inputs.version }}
     
     steps:
       - uses: actions/checkout@v4
@@ -91,6 +93,58 @@ jobs:
           prerelease: false
           generate_release_notes: true
 
+  build-and-publish:
+    name: Build and Publish to PyPI
+    needs: create-release
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      actions: read
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install maturin and twine
+        run: |
+          pip install maturin twine build
+      
+      - name: Build source distribution
+        run: maturin sdist
+      
+      - name: Build wheels for multiple platforms
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --strip --interpreter 3.9 3.10 3.11 3.12
+          manylinux: auto
+      
+      - name: List built packages
+        run: ls -la target/wheels/
+      
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: target/wheels/
+          skip-existing: true
+          password: ${{ secrets.PYPI_API_TOKEN }}
+      
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.create-release.outputs.tag_name }}
+          files: target/wheels/*
+
   build-release-assets:
     name: Build Release Assets
     needs: create-release
@@ -122,11 +176,3 @@ jobs:
       - name: Build source distribution (Ubuntu only)
         if: matrix.os == 'ubuntu-latest'
         run: maturin sdist
-      
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name || github.event.inputs.version }}
-          files: target/wheels/*
